@@ -12,8 +12,9 @@ quarto render Readme.md --to pdf
 
 | Semester:      | FS26                                     |
 |:---------------|:---------------------------------------- |
-| **Data:**      | What type of data are you focussing on?  |
-| **Title:**     | The title of your project                |
+| **Data:**      | Weather Data                             |
+| **Title:**     | Weather Conditions and their Influence   |
+                   on human Mobility Patterns               |
 | **Student 1:** | Lars Weidinger                           |
 | **Student 2:** | Javier Feller                            |
 
