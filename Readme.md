@@ -26,7 +26,8 @@ This project investigates how weather conditions influence human mobility patter
 I) How do temperature and precipitation affect daily travel distance, speed, sinuousity and acceleration?  
 II) How do temperature and precipitation affect the spatial extent of activity spaces?  
 III) Does travel speed increase with more precipitation?  
-IV) How does precipitation affect the number of stops?  
+IV) How does precipitation affect the number of stops?
+Perhaps V): Do short trips with public transport (instead of walking) occur more often with precipitation than without?
 
 ## Results / products
 <!-- (50-100 words) -->
@@ -79,3 +80,5 @@ Our plan B is to focus more on the descriptive movement analysis if we do not ha
 Is this scope appropriate?  
 Could/Should we include other datasets?  
 Does the selection scale and order of procedure make sense?
+Should we use weather data per hour? https://data.stadt-zuerich.ch/dataset/ugz_stadtklima_zuerich_temperaturmessungen_messnetz_meteoblue
+
