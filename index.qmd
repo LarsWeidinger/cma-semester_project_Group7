@@ -1,0 +1,69 @@
+---
+title: The title of your Semesterproject
+subtitle: A subtle subtitle
+author: Lars Weidinger & Javier Feller
+format:
+  html:
+    code-fold: true
+execute:
+  warning: false
+  message: false
+lang: en
+bibliography: bibliography.bib
+---
+
+```{r preprocessing}
+#| code-summary: preprocessing
+
+``` 
+
+# Notes from Project Proposal Call
+Meteo Daten Stunde vs. Tag --> ausprobieren
+
+Sample zu klein wahrscheinlich, Stunde sieht man probably mehr Muster
+andere Studierende? 
+
+Map Matching --> nicht nötig für unser Projekt
+
+Timeline vs. ArcGIS Earth --> wie kann man das vergleichen?
+Filter machen für die Abschnitte, bei denen wir die gleichen Informationen haben
+--> falls zu aufwändig, dann treffen wir eine pragmatische Entscheidung und halten das so fest (Vereinfachung) 
+
+1) Anschauen, ob man mit Meteodaten (1 Tag) Unterschiede auf dem gesamten Datensatz sieht. 
+- Zu Beginn explorativ anschauen, ob es Unterschiede gibt von Wochentagen und Wochenenden 
+
+2) Dann genauer schauen mit Meteodaten (1h oder 15min) 
+
+3) Dann noch genauer schauen und zwar nur dort, wo man gelaufen ist.
+- gibt es Unterschiede in Laufdistanz oder Laufgeschwindigkeit je nach Temperatur?
+
+4) Falls man keine krassen Unterschiede sieht --> zwei Ansätze miteinander vergleichen (z.B. 15min vs. 1h oder 1 Tag) 
+--> geht um konzeptueller Approach, Ergebnisse sind nicht so relevant
+
+Alternative Datensätze: Tageslicht? Stürme? 
+
+
+## Abstract
+
+## Introduction
+
+@laube2011 investigate how temporal scale affects the calculation of movement parameters (speed, sinuosity and turning angle) of animal trajectories. 
+
+## Material and Methods
+
+## Results
+
+## Discussion
+
+## Appendix
+
+### Wordcount
+
+<!-- after installing the wordcountadding, remove the line "#| eval: false" -->
+
+```{r}
+#| eval: false
+wordcountaddin::word_count("index.qmd")
+```
+
+
