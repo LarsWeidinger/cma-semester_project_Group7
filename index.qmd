@@ -14,7 +14,7 @@ bibliography: bibliography.bib
 
 ```{r preprocessing}
 #| code-summary: preprocessing
-
+source("preprocessing.R") # this runs the whole preprocessing file
 ``` 
 
 # Notes from Project Proposal Call
@@ -153,14 +153,46 @@ plot(voronoi_clipped)
 ```
 
 ### Assign Google Timeline Data to Voronoi Polygons
-```{r}
-google_timeline_sf_lv95
+We can now use a spatial join to assign the corresponding weather station to each one of the Google Timeline tracking points.  
+Since we traveled quite a lot outside of the city of Zurich, we omit the data outside the city (NA values), which is approximately 60% of the data points. 
 
-voronoi_clipped
+```{r}
+# both datasets are in CH1903+
+
+# spatial join: assign polygon attributes (Standort) to points
+google_timeline_sf_lv95 <- st_join(
+  google_timeline_sf_lv95,
+  voronoi_clipped["Standort"],
+  join = st_within) |>
+  
+  drop_na() # omit NA values (quite a lot of them)
 ```
 
+### Assign Weather Data to Google Timeline Data
+Now that we have assigned each data point to its closest weather station, we need to assign them their relevant weather values. We decided on using temperature (T) and rain (RainDur).
+
+```{r}
+
+```
+
+Zeitkomponente noch reinbringen bei der Analyse. 
 
 ## Visualise Trip Data
+
+Concave Hull around Trips per Day 
+--> calculate area
+
+Average weather values across whole Hull
+
+Compare if area is bigger when T is higher or P lower
+
+
+## Influence of Weather on Walking
+Travel Mode detection
+Fokus nur auf on foot
+--> calculate speed for each segment
+
+--> assign weather information to each segment
 
 
 # Results
