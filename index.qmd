@@ -51,6 +51,34 @@ Alternative Datensätze: Tageslicht? Stürme?
 
 # Material and Methods
 
+## Load Packages
+```{r}
+library(pacman)
+
+# Load and if not found in the library will attempt to install the package
+pacman::p_load(here,
+               sf,
+               readr,
+               tmap,
+               dplyr,
+               ggplot2,
+               tidyr,
+               jsonlite,
+               lubridate, # temporal import from JSON file
+               tidyverse,
+               leaflet, # interactive maps
+               tmap, # interactive maps
+               install = TRUE)
+
+```
+
+## Set CRS
+```{r}
+crs_lv95  <- 2056
+crs_wgs84 <- 4326
+```
+
+
 ## Import Data
 See the preprocessing.R file where we import:  
 - weather data  
@@ -58,7 +86,9 @@ See the preprocessing.R file where we import:
 - boundary data?
 
 ```{r}
-stadtgrenze <- read_sf("data/Gemeindegrenzen_OGD/Gemeindegrenzen_-OGD.gpkg")
+stadtgrenze <- read_sf("data/Gemeindegrenzen_OGD/Gemeindegrenzen_-OGD.gpkg", layer = "up_gemeinden_f") |> # take the polygon
+  filter(gemeindename == "Zürich") |> # of the city of Zurich
+  select(gemeindename, geom)
 ```
 
 ## Visualise Weather Data Daily
@@ -87,9 +117,47 @@ weather_stations <- data.frame(
     1248019.62
   )
 )
+
+weather_stations_sf <- st_as_sf(
+  weather_stations,
+  coords = c("E", "N"),
+  crs = crs_lv95)
 ```
 
 ### Constrcut Voronoi Polygons around Measuring Stations
+Since we need to assign weather data to our stops and later our segments we need to relate the two datasets spatially. For that, we construct Voronoi polygons around the measuring stations and assign each tracking point the weather values from the station it is closest to (= inside the Voronoi polygon).
+
+```{r}
+# both datasets are in CH1903+
+
+# create a union of points
+pts_union <- st_union(weather_stations_sf)
+
+# create Voronoi tessellation
+voronoi <- st_voronoi(pts_union)
+
+# extract polygons
+voronoi_polygons <- st_collection_extract(voronoi, "POLYGON")
+
+# convert to sf object
+voronoi_sf <- st_sf(
+  Standort = weather_stations_sf$Standort,
+  geometry = st_cast(voronoi_polygons))
+
+# clip to city boundary
+voronoi_clipped <- st_intersection(voronoi_sf, stadtgrenze)
+```
+
+```{r}
+plot(voronoi_clipped) 
+```
+
+### Assign Google Timeline Data to Voronoi Polygons
+```{r}
+google_timeline_sf_lv95
+
+voronoi_clipped
+```
 
 
 ## Visualise Trip Data
