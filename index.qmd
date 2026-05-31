@@ -43,19 +43,62 @@ Filter machen für die Abschnitte, bei denen wir die gleichen Informationen habe
 Alternative Datensätze: Tageslicht? Stürme? 
 
 
-## Abstract
+# Abstract
 
-## Introduction
+# Introduction
 
 @laube2011 investigate how temporal scale affects the calculation of movement parameters (speed, sinuosity and turning angle) of animal trajectories. 
 
-## Material and Methods
+# Material and Methods
 
-## Results
+## Import Data
+See the preprocessing.R file where we import:  
+- weather data  
+- tracking data  
+- boundary data?
 
-## Discussion
+```{r}
+stadtgrenze <- read_sf("data/Gemeindegrenzen_OGD/Gemeindegrenzen_-OGD.gpkg")
+```
 
-## Appendix
+## Visualise Weather Data Daily
+
+### Locating Weather Stations
+Since the data did not provide coordinates of the measuring stations, we manually took the WGS84 coordinates of points that have to be close to the actual measuring stations. We will ask the City of Zurich for the exact locations of the stations but for now this is our approximation. 
+```{r}
+weather_stations <- data.frame(
+  Standort = c(
+    "Zch_Heubeeribüel",
+    "Zch_Rosengartenstrasse",
+    "Zch_Schimmelstrasse",
+    "Zch_Stampfenbachstrasse"
+  ),
+  N = c(
+    47.381649,
+    47.394246,
+    47.370387,
+    47.382523
+  ),
+  E = c(
+    8.565671,
+    8.525256,
+    8.524831,
+    8.541706
+  )
+)
+```
+
+### Constrcut Voronoi Polygons around Measuring Stations
+
+
+## Visualise Trip Data
+
+
+# Results
+
+# Discussion
+
+# Appendix
 
 ### Wordcount
 
