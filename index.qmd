@@ -64,7 +64,8 @@ stadtgrenze <- read_sf("data/Gemeindegrenzen_OGD/Gemeindegrenzen_-OGD.gpkg")
 ## Visualise Weather Data Daily
 
 ### Locating Weather Stations
-Since the data did not provide coordinates of the measuring stations, we manually took the WGS84 coordinates of points that have to be close to the actual measuring stations. We will ask the City of Zurich for the exact locations of the stations but for now this is our approximation. 
+Since the data did not provide coordinates of the measuring stations, we manually took the CH1903+ coordinates of points that have to be close to the actual measuring stations using map.geo.admin.ch. We will ask the City of Zurich for the exact locations of the stations but for now this is our approximation for the moment. 
+
 ```{r}
 weather_stations <- data.frame(
   Standort = c(
@@ -73,17 +74,17 @@ weather_stations <- data.frame(
     "Zch_Schimmelstrasse",
     "Zch_Stampfenbachstrasse"
   ),
-  N = c(
-    47.381649,
-    47.394246,
-    47.370387,
-    47.382523
-  ),
   E = c(
-    8.565671,
-    8.525256,
-    8.524831,
-    8.541706
+    2685280.12,
+    2682050.59,
+    2682105.79,
+    2683454.71
+  ),
+  N = c(
+    1248962.89,
+    1249880.93,
+    1247104.63,
+    1248019.62
   )
 )
 ```
