@@ -1,6 +1,6 @@
 ---
-title: The title of your Semesterproject
-subtitle: A subtle subtitle
+title: Weather Conditions and their Influence on human Mobility Patterns
+subtitle: A descriptive approach
 author: Lars Weidinger & Javier Feller
 format:
   html:
@@ -78,7 +78,6 @@ crs_lv95  <- 2056
 crs_wgs84 <- 4326
 ```
 
-
 ## Import Data
 See the preprocessing.R file where we import:  
 - weather data  
@@ -88,7 +87,7 @@ See the preprocessing.R file where we import:
 ```{r}
 stadtgrenze <- read_sf("data/Gemeindegrenzen_OGD/Gemeindegrenzen_-OGD.gpkg", layer = "up_gemeinden_f") |> # take the polygon
   filter(gemeindename == "Zürich") |> # of the city of Zurich
-  select(gemeindename, geom)
+  select(geom)
 ```
 
 ## Visualise Weather Data Daily
@@ -133,8 +132,13 @@ Since we need to assign weather data to our stops and later our segments we need
 # create a union of points
 pts_union <- st_union(weather_stations_sf)
 
-# create Voronoi tessellation
-voronoi <- st_voronoi(pts_union)
+# create Voronoi tessellation with an envelope
+# st_voronoi has an envelope argument. Instead of generating a huge (or to small) tessellation we can set the scope here
+envelope_stadtgrenze <- st_as_sfc(st_bbox(stadtgrenze))
+
+voronoi <- st_voronoi(
+  pts_union,
+  envelope = envelope_stadtgrenze)
 
 # extract polygons
 voronoi_polygons <- st_collection_extract(voronoi, "POLYGON")
@@ -145,7 +149,7 @@ voronoi_sf <- st_sf(
   geometry = st_cast(voronoi_polygons))
 
 # clip to city boundary
-voronoi_clipped <- st_intersection(voronoi_sf, stadtgrenze)
+voronoi_clipped <- sf::st_intersection(voronoi_sf, stadtgrenze)
 ```
 
 ```{r}
@@ -175,6 +179,8 @@ Now that we have assigned each data point to its closest weather station, we nee
 
 ```
 
+Week 5, Task 3
+
 Zeitkomponente noch reinbringen bei der Analyse. 
 
 ## Visualise Trip Data
@@ -188,6 +194,7 @@ Compare if area is bigger when T is higher or P lower
 
 
 ## Influence of Weather on Walking
+
 Travel Mode detection
 Fokus nur auf on foot
 --> calculate speed for each segment
