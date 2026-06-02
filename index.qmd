@@ -68,6 +68,7 @@ pacman::p_load(here,
                tidyverse,
                leaflet, # interactive maps
                tmap, # interactive maps
+               concaveman, # construct concave hulls
                install = TRUE)
 
 ```
@@ -211,30 +212,52 @@ google_timeline_weather <- google_timeline_sf_lv95 |>
   )
 ```
 
-## Visualise Trip Data
+## Visualise Activity Space
 
-To answer RQ II we need to construct some sort of measurement for activity space. We decided on constructing concave hulls around the trips for each day. We then can calculate the area of these hulls, take the average weather values across the whole hull and anaylse if the area is larger when T is higher or P is lower.
+To answer RQ II we need to construct some sort of measurement for activity space. We decided on constructing concave hulls around the trips for each day. We then can calculate the area of these hulls, take the average weather values across the whole hull and analyse if the area is larger when T is higher or P is lower.
+
+We decided to use concave hulls rather than convex hulls since they are less prone to outliers. Even though there are some convex hull implementations that allow for some sort of variable to be manipulated in order to exclude outliers (e.g. adehabitatHR::mcp()), the concave hull is more suited for our use case. We could have also used Alpha shapes (alphahull::) which accounts for holes in our data but this is not needed since we are dealing with cotinuous travel data. 
+
+QUELLE: GEO 872, 3. Vlsg 02.10.24 Point Patterns - Polygon Delineation
+
+Alternative: Standard devitational ellipse (SDE): forms a closed shape that represents distributional properties of the point set but does not enclose all points.
 
 ```{r}
 # concave hulls around trips for each day
+google_timeline_hulls <- google_timeline_sf_lv95 |>
+  group_by(Date) |>
+  summarise(geometry = st_union(geometry), .groups = "drop") |>
+  st_as_sf() |>
+  mutate(geometry = concaveman(geometry))
+```
 
+In the first approach we called concaveman() on the entire sfc column (all geometries at once), not on each row individually. It computed one hull over all points and that same result gets recycled into every row which resulted in all the hulls being the same. We asked Claude AI (Model Sonnet 4.6) for help and it delivered the following solution using lapply.
 
+```{r}
+# Step 1: union points by date
+google_timeline_hulls <- google_timeline_sf_lv95 |>
+  group_by(Date) |>
+  summarise(geometry = st_union(geometry), .groups = "drop") |>
+  st_as_sf()
+
+# Step 2: build concave hull for each date
+hulls_list <- lapply(google_timeline_hulls$geometry, function(g) {
+  coords <- st_coordinates(g)[, c("X", "Y")]
+  st_polygon(list(concaveman(coords)))
+})
+
+# Step 3: assign hulls back as sfc column
+google_timeline_hulls$geometry <- st_sfc(hulls_list, crs = st_crs(google_timeline_sf_lv95))
 ```
 
 ```{r}
 # calculate area
-
-
+google_timeline_hulls <- google_timeline_hulls |>
+  mutate(
+    area_m2 = as.numeric(st_area(geometry)),
+    area_km2 = area_m2 / 1000000)
 ```
 
-```{r}
-# average weather values across whole hull
-
-
-```
-
-
-Compare if area is bigger when T is higher or P lower
 
 
 ## Influence of Weather on Walking
@@ -244,7 +267,6 @@ Fokus nur auf on foot
 --> calculate speed for each segment
 
 --> assign weather information to each segment
-
 
 # Results
 
