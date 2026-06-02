@@ -173,22 +173,66 @@ google_timeline_sf_lv95 <- st_join(
 ```
 
 ### Assign Weather Data to Google Timeline Data
-Now that we have assigned each data point to its closest weather station, we need to assign them their relevant weather values. We decided on using temperature (T) and rain (RainDur).
+Now that we have assigned each data point to its closest weather station, we need to assign them their relevant weather values. We decided on using temperature (T) and rain (RainDur). One problem is, that the station Heubeeribüel does not collect RainDur information. 
 
 ```{r}
+# based on the exercises of week 5, Task 3 ff we first create a join key so that we can later match them exactly
 
+google_timeline_sf_lv95 <- google_timeline_sf_lv95 |>
+  mutate(
+    Date = as.Date(time)) # since we only have one measurement per night
+
+weather_daily_df <- weather_daily_df |>
+  mutate(
+    Date = as.Date(Datum)) # since we only have one measurement per night
 ```
 
-Week 5, Task 3
+```{r}
+# prepare weather data
+weather_daily_df_wide <- weather_daily_df |>
+  filter(Parameter %in% c("T", "RainDur")) |> # we only want T and RainDur
+  select(Date, Standort, Parameter, Wert) |>
+  pivot_wider(                               # we need the parameters as columns
+    names_from = Parameter,
+    values_from = Wert
+  ) |>
+  rename(
+    Temperature = T,
+    RainDur = RainDur
+  )
+```
 
-Zeitkomponente noch reinbringen bei der Analyse. 
+```{r}
+# join the two datasets
+google_timeline_weather <- google_timeline_sf_lv95 |>
+  left_join(
+    weather_daily_df_wide,
+    by = c("Date", "Standort")
+  )
+```
 
 ## Visualise Trip Data
 
-Concave Hull around Trips per Day 
---> calculate area
+To answer RQ II we need to construct some sort of measurement for activity space. We decided on constructing concave hulls around the trips for each day. We then can calculate the area of these hulls, take the average weather values across the whole hull and anaylse if the area is larger when T is higher or P is lower.
 
-Average weather values across whole Hull
+```{r}
+# concave hulls around trips for each day
+
+
+```
+
+```{r}
+# calculate area
+
+
+```
+
+```{r}
+# average weather values across whole hull
+
+
+```
+
 
 Compare if area is bigger when T is higher or P lower
 
