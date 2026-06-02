@@ -124,6 +124,30 @@ weather_stations_sf <- st_as_sf(
   crs = crs_lv95)
 ```
 
+```{r}
+ggplot() +
+  geom_sf(data = stadtgrenze, fill = "#D5F4FF", color = "black") +
+  geom_sf(data = weather_stations_sf, aes(color = Standort), size = 3) +
+  
+  coord_sf(datum = crs_lv95) +
+  
+  labs(
+    title = "Weather Stations within Zurich",
+    color = "Station",
+    x = "Easting [m]",
+    y = "Northing [m]") +
+  
+  theme_minimal() +
+  
+  theme(
+    plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
+    legend.title = element_text(size = 10),
+    legend.text = element_text(size = 8),
+    axis.text = element_blank(), 
+    axis.title = element_blank()
+    )
+```
+
 ### Constrcut Voronoi Polygons around Measuring Stations
 Since we need to assign weather data to our stops and later our segments we need to relate the two datasets spatially. For that, we construct Voronoi polygons around the measuring stations and assign each tracking point the weather values from the station it is closest to (= inside the Voronoi polygon).
 
@@ -154,7 +178,26 @@ voronoi_clipped <- sf::st_intersection(voronoi_sf, stadtgrenze)
 ```
 
 ```{r}
-plot(voronoi_clipped) 
+ggplot() +
+  geom_sf(data = voronoi_clipped, aes(fill = Standort)) +
+  
+  coord_sf(datum = crs_lv95) +
+  
+  labs(
+    title = "Voronoi Polygons around\n Weather Stations in Zurich",
+    color = "Station",
+    x = "Easting [m]",
+    y = "Northing [m]") +
+  
+  theme_minimal() +
+  
+  theme(
+    plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
+    legend.title = element_text(size = 10),
+    legend.text = element_text(size = 8),
+    axis.text = element_blank(), 
+    axis.title = element_blank()
+    )
 ```
 
 ### Assign Google Timeline Data to Voronoi Polygons
@@ -212,6 +255,7 @@ google_timeline_weather <- google_timeline_sf_lv95 |>
   )
 ```
 
+
 ## Visualise Activity Space
 
 To answer RQ II we need to construct some sort of measurement for activity space. We decided on constructing concave hulls around the trips for each day. We then can calculate the area of these hulls, take the average weather values across the whole hull and analyse if the area is larger when T is higher or P is lower.
@@ -222,14 +266,7 @@ QUELLE: GEO 872, 3. Vlsg 02.10.24 Point Patterns - Polygon Delineation
 
 Alternative: Standard devitational ellipse (SDE): forms a closed shape that represents distributional properties of the point set but does not enclose all points.
 
-```{r}
-# concave hulls around trips for each day
-google_timeline_hulls <- google_timeline_sf_lv95 |>
-  group_by(Date) |>
-  summarise(geometry = st_union(geometry), .groups = "drop") |>
-  st_as_sf() |>
-  mutate(geometry = concaveman(geometry))
-```
+### Construct Concave Hulls
 
 In the first approach we called concaveman() on the entire sfc column (all geometries at once), not on each row individually. It computed one hull over all points and that same result gets recycled into every row which resulted in all the hulls being the same. We asked Claude AI (Model Sonnet 4.6) for help and it delivered the following solution using lapply.
 
@@ -243,10 +280,23 @@ google_timeline_hulls <- google_timeline_sf_lv95 |>
 # Step 2: build concave hull for each date
 hulls_list <- lapply(google_timeline_hulls$geometry, function(g) {
   coords <- st_coordinates(g)[, c("X", "Y")]
+  
+  # need at least 3 unique points for a polygon
+  if (is.null(nrow(coords)) || nrow(unique(coords)) < 3) return(NA)
+  
   st_polygon(list(concaveman(coords)))
 })
 
-# Step 3: assign hulls back as sfc column
+# Step 3: check which dates failed
+failed_dates <- google_timeline_hulls$Date[sapply(hulls_list, function(x) identical(x, NA))]
+print(failed_dates)  # inspect which dates are problematic
+
+# Step 4: remove failed dates and assign geometry
+google_timeline_hulls <- google_timeline_hulls[!sapply(hulls_list, function(x) identical(x, NA)), ]
+
+hulls_list <- hulls_list[!sapply(hulls_list, function(x) identical(x, NA))]
+
+# Step 5: assign hulls back as sfc column
 google_timeline_hulls$geometry <- st_sfc(hulls_list, crs = st_crs(google_timeline_sf_lv95))
 ```
 
@@ -258,7 +308,70 @@ google_timeline_hulls <- google_timeline_hulls |>
     area_km2 = area_m2 / 1000000)
 ```
 
+### Assign Weather Values
+```{r}
+# average weather values across whole hull
+daily_weather <- google_timeline_weather |>
+  st_drop_geometry() |>
+  group_by(Date) |>
+  summarise(
+    Temperature = mean(Temperature, na.rm = TRUE),
+    RainDur = mean(RainDur, na.rm = TRUE)
+  )
 
+daily_hulls_weather <- google_timeline_hulls |>
+  left_join(daily_weather, by = "Date")
+```
+
+### Statistical Analysis
+We are under the assumption that the the area is bigger when temperature is higher or RainDur is higher.
+
+```{r}
+# visualise the variable Temperature
+ggplot(daily_hulls_weather, aes(x = Temperature, y = log(area_km2))) +
+  geom_point() +
+  geom_smooth(method = "lm", se = TRUE) +
+  labs(
+    x = "Temperature (°C)",
+    y = "log(Activity Space Area km²)",
+    title = "Activity Space vs Temperature") +
+  theme_minimal()
+```
+
+```{r}
+# visualise the variable RainDur
+ggplot(daily_hulls_weather, aes(x = RainDur, y = log(area_km2))) +
+  geom_point() +
+  geom_smooth(method = "lm", se = TRUE) +
+  labs(
+    x = "Rain Duration (min)",
+    y = "log(Activity Space Area km²)",
+    title = "Activity Space vs Rain Duration") +
+  theme_minimal()
+```
+
+```{r}
+# linear model with log(area)
+lm1 <- lm(log(area_km2) ~ Temperature + RainDur, data = daily_hulls_weather)
+```
+
+```{r}
+# full model summary (R^2, adjusted R^2, p-values, residual std error)
+summary(lm1)
+
+
+par(mfrow = c(1, 1))
+plot(lm1, which = 1)  # Residuals vs Fitted
+plot(lm1, which = 2)  # Q-Q plot
+plot(lm1, which = 3)  # Scale-Location
+plot(lm1, which = 5)  # Residuals vs Leverage
+```
+
+The model is significant as a whole (F-statistic p = 0.028), meaning Temperature and RainDur together do explain some variation in activity space.  
+
+There is a suggestive positive trend with Temperature, but we cannot confidently reject H0.  
+
+The low R^2 (0.21) and adjusted R^2 (0.15) suggests other factors (e.g. day of week, work/leisure day, season) that influence activity space more than weather. 
 
 ## Influence of Weather on Walking
 
