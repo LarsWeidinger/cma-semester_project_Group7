@@ -216,6 +216,33 @@ google_timeline_sf_lv95 <- st_join(
   drop_na() # omit NA values (quite a lot of them)
 ```
 
+```{r}
+# visualise timeline points
+ggplot() +
+  geom_sf(data = stadtgrenze, fill = "#D5F4FF", color = "black") +
+  
+  geom_sf(data = google_timeline_sf_lv95, color = "orange", size = 0.6) +
+
+  
+  coord_sf(datum = crs_lv95) +
+  
+  labs(
+    title = "Google Timeline Data Points\n within Zurich",
+    color = "Stop",
+    x = "Easting [m]",
+    y = "Northing [m]") +
+  
+  theme_minimal() +
+  
+  theme(
+    plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
+    legend.title = element_text(size = 10),
+    legend.text = element_text(size = 8),
+    axis.text = element_blank(), 
+    axis.title = element_blank()
+    )
+```
+
 ### Assign Weather Data to Google Timeline Data
 Now that we have assigned each data point to its closest weather station, we need to assign them their relevant weather values. We decided on using temperature (T) and rain (RainDur). One problem is, that the station Heubeeribüel does not collect RainDur information. 
 
@@ -255,6 +282,32 @@ google_timeline_weather <- google_timeline_sf_lv95 |>
   )
 ```
 
+```{r}
+# visualise timeline points with voronoi polygons
+ggplot() +
+  geom_sf(data = voronoi_clipped, aes(fill = Standort)) +
+  
+  geom_sf(data = google_timeline_sf_lv95, color = "orange", size = 0.6) +
+
+  
+  coord_sf(datum = crs_lv95) +
+  
+  labs(
+    title = "Google Timeline Data Points\n within the Voronoi Polygons",
+    color = "Stop",
+    x = "Easting [m]",
+    y = "Northing [m]") +
+  
+  theme_minimal() +
+  
+  theme(
+    plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
+    legend.title = element_text(size = 10),
+    legend.text = element_text(size = 8),
+    axis.text = element_blank(), 
+    axis.title = element_blank()
+    )
+```
 
 ## Visualise Activity Space
 
@@ -372,7 +425,6 @@ The model is significant as a whole (F-statistic p = 0.028), meaning Temperature
 There is a suggestive positive trend with Temperature, but we cannot confidently reject H0.  
 
 The low R^2 (0.21) and adjusted R^2 (0.15) suggests other factors (e.g. day of week, work/leisure day, season) that influence activity space more than weather. 
-
 ## Influence of Weather on Walking
 
 Travel Mode detection
