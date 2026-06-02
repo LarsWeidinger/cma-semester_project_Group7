@@ -361,6 +361,33 @@ google_timeline_hulls <- google_timeline_hulls |>
     area_km2 = area_m2 / 1000000)
 ```
 
+```{r}
+# visualise concave hulls
+ggplot() +
+  geom_sf(data = stadtgrenze, fill = "#D5F4FF", color = "black") +
+  
+  geom_sf(data = daily_hulls_weather, fill = Temperature) +
+
+  coord_sf(datum = crs_lv95) +
+  
+  labs(
+    title = "Concave Hulls of Daily Movement in Zurich",
+    color = "Temperature [°C]",
+    x = "Easting [m]",
+    y = "Northing [m]") +
+  
+  theme_minimal() +
+  
+  theme(
+    plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
+    legend.title = element_text(size = 10),
+    legend.text = element_text(size = 8),
+    axis.text = element_blank(), 
+    axis.title = element_blank()
+    )
+```
+
+
 ### Assign Weather Values
 ```{r}
 # average weather values across whole hull
