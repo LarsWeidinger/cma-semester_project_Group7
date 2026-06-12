@@ -42,9 +42,10 @@ Filter machen für die Abschnitte, bei denen wir die gleichen Informationen habe
 --> falls zu aufwändig, dann treffen wir eine pragmatische Entscheidung und halten das so fest (Vereinfachung) 
 
 1) Anschauen, ob man mit Meteodaten (1 Tag) Unterschiede auf dem gesamten Datensatz sieht. 
-- Zu Beginn explorativ anschauen, ob es Unterschiede gibt von Wochentagen und Wochenenden 
+- Zu Beginn explorativ anschauen, ob es Unterschiede gibt von Wochentagen und Wochenenden
 
-2) Dann genauer schauen mit Meteodaten (1h oder 15min) 
+2) Dann genauer schauen mit Meteodaten (1h oder 15min) --> Temperatur als Feld modellieren, nicht als Voronoi Polygone
+
 
 3) Dann noch genauer schauen und zwar nur dort, wo man gelaufen ist.
 - gibt es Unterschiede in Laufdistanz oder Laufgeschwindigkeit je nach Temperatur?
@@ -83,6 +84,8 @@ pacman::p_load(here,
                leaflet, # interactive maps, more personal experience than on tmap
                tmap, # interactive maps
                concaveman, # construct concave hulls
+               gstat, # for IDW
+               stars, # to create a grid
                install = TRUE)
 
 ```
@@ -100,7 +103,7 @@ See the preprocessing.R file where we import:
 - tracking data   
 - city boundary data  
 
-## Visualise Weather Data Daily
+## Visualise Weather Data Daily (Voronoi Polygon)
 
 ### Locating Weather Stations
 In the provided metadata JSON file the location of the weather stations can be found. We imported and cleaned the metadat in the preprocessing file. 
@@ -291,7 +294,7 @@ ggplot() +
     )
 ```
 
-## Visualise Activity Space
+## Visualise Activity Space (Concave Hulls)
 
 To answer RQ II we need to construct some sort of measurement for activity space. We decided on constructing concave hulls around the trips for each day. We then can calculate the area of these hulls, take the average weather values across the whole hull and analyse if the area is larger when T is higher or P is lower.
 
@@ -444,7 +447,44 @@ There is a suggestive positive trend with Temperature, but we cannot confidently
 
 The low R^2 (0.21) and adjusted R^2 (0.15) suggests other factors (e.g. day of week, work/leisure day, season) that influence activity space more than weather. 
 
+## Visualise Weather Daily (Field)
+We only have weather measurements at at a handful of stations across the city. Assigning each location fix the weather data of the Voronoi polygon of the station it is in, is simplistic. Weather changes somewhat gradually across space, a more "fluid" approach would be better. That is why we decided on using Inverse Distance Weighting (IDW), which is a simple approach to generate gradually changing values across space using some sort of tessellation.  
+With only few stations the interpolation accuracy will be low. We are not capturing real microclimate variation like urban heat island effects or cooling green spaces and water bodies. But since we plan on repeating our method with the finer scaled Meteoblue stations, we decided on applying the IDW method. 
 
+Since we do not want to compute a full raster per day we will do a point-wise IDW prediction directly at each location fix's coordinates, using all weather station information. 
+
+A raster per timestamp needs a lot of computation time and we only need the value at the fix's exact coordinates. Point-wise IDW is just a weighted average of all the distance, which takes much less time and we avoid avoid managing hundreds of rasters.
+
+### Inverse Distance Weighting (IDW)
+```{r}
+# this code chunk was constructed with the help of Claude 
+
+# join station coordinates to daily weather data
+weather_long <- weather_daily_df_wide |>
+  left_join(st_drop_geometry(weather_stations_sf) |> 
+              select(ID, geometry), by = c("Station_name" = "ID"))
+
+# function: IDW prediction for one point given that day's station data
+idw_predict <- function(x, y, date, weather_long, power = 2) {
+  day_data <- weather_long |> filter(Date == date, !is.na(Temperature))
+  
+  if (nrow(day_data) == 0) return(NA_real_)
+  
+  dists <- sqrt((day_data$Koordinaten_LV95_X - x)^2 + (day_data$Koordinaten_LV95_Y - y)^2)
+  
+  # avoid division by zero if fix is exactly at a station
+  if (any(dists == 0)) return(day_data$Temperature[which(dists == 0)[1]])
+  
+  weights <- 1 / (dists^power)
+  sum(weights * day_data$Temperature) / sum(weights)
+}
+
+# apply to  Google timeline data (assumed columns: X, Y, Date)
+timeline_data <- timeline_data |>
+  rowwise() |>
+  mutate(interpolated_temp = idw_predict(X, Y, Date, weather_long)) |>
+  ungroup()
+```
 
 
 
