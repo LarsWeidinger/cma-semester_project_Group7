@@ -13,6 +13,9 @@ pacman::p_load(here,
                tidyverse,
                install = TRUE)
 
+# set CRS
+crs_lv95  <- 2056
+crs_wgs84 <- 4326
 
 # Open Government Data, OpenDataZurich, *Täglich aktualisierte Meteodaten, seit 1992"
 # The following code is provided by the City of Zurich and can be found under this link: https://github.com/opendatazurich/starter-code/blob/main/01_r-markdown/ugz_meteodaten_tagesmittelwerte_141e649c-27de-412d-ba57-7491bc162dd2.Rmd
@@ -33,16 +36,23 @@ if (str_detect(url, ".csv")) {
   print("File format not recognised!")
 }
 
-# Analyze the data
-head(weather_daily_df)
+# filter weather_daily_df to our timeframe --> tbd
 
-# Filter weather_daily_df to our timeframe
+# import weather station information from the metadata JSON file provided by the city of Zurich
+weather_stations <- fromJSON("data/weather_stations_metadata.json")
 
+weather_stations_sf <-  bind_rows(weather_stations)|> 
+  filter(!is.na(Koordinaten_LV95_X)) |>
+  select(ID, Koordinaten_LV95_X, Koordinaten_LV95_Y) |>
+  st_as_sf(coords = c("Koordinaten_LV95_X", "Koordinaten_LV95_Y"),
+  crs = crs_lv95)
 
-# Import Google Timeline data
-crs_lv95  <- 2056
-crs_wgs84 <- 4326
+# city boundary layer
+stadtgrenze <- read_sf("data/Gemeindegrenzen_OGD/Gemeindegrenzen_-OGD.gpkg", layer = "up_gemeinden_f") |> # take the polygon
+  filter(gemeindename == "Zürich") |> # of the city of Zurich
+  select(geom)
 
+# import Google Timeline data
 google_timeline <- fromJSON("data/Google_timeline.json", simplifyVector = FALSE) # to keep the nested structure
 
 segments <- google_timeline$semanticSegments
@@ -69,5 +79,5 @@ google_timeline_df <- google_timeline_df |>
 # convert to a spatial object
 google_timeline_sf <- st_as_sf(google_timeline_df, coords = c("lon", "lat"), crs = crs_wgs84)
 
-# Convert to local CRS
+# convert to local CRS
 google_timeline_sf_lv95 <- st_transform(google_timeline_sf, crs = crs_lv95)
