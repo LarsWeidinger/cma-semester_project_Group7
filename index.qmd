@@ -348,7 +348,7 @@ google_timeline_hulls <- google_timeline_hulls |>
 ggplot() +
   geom_sf(data = stadtgrenze, fill = "transparent", color = "black") +
   
-  geom_sf(data = google_timeline_hulls, aes(fill = as.factor(Date)), alpha = 0.6) +
+  geom_sf(data = google_timeline_hulls, aes(fill = as.factor(Date)), alpha = 0.8) +
   
   scale_fill_discrete(guide = "none") +
   
@@ -383,19 +383,31 @@ daily_hulls_weather <- google_timeline_hulls |>
   left_join(daily_weather, by = "Date")
 ```
 
-### Statistical Analysis
-We are under the assumption that the the area is bigger when temperature is higher or RainDur is higher.
-
+For visualisation purpose we show four random concave hulls. As can be seen in the below visualisation, the temperature assignment worked. 
 ```{r}
-# visualise the variable Temperature
-ggplot(daily_hulls_weather, aes(x = Temperature, y = log(area_km2))) +
-  geom_point() +
-  geom_smooth(method = "lm", se = TRUE) +
+# visualise concave hulls with weather data
+ggplot() +
+  geom_sf(data = stadtgrenze, fill = "transparent", color = "black") +
+  
+  geom_sf(data = daily_hulls_weather[c(1, 8, 24, 35), ], aes(fill = Temperature), alpha = 1) +
+  
+  scale_fill_gradient2(low = "blue", mid = "white", high = "red", midpoint = 0, name = "Temperature [°C]") +
+  
   labs(
-    x = "Temperature (°C)",
-    y = "log(Activity Space Area km²)",
-    title = "Activity Space vs Temperature") +
-  theme_minimal()
+    title = "Concave Hulls of Daily Movement in Zurich",
+    color = "Temperature",
+    x = "Easting [m]",
+    y = "Northing [m]") +
+  
+  theme_minimal() +
+  
+  theme(
+    plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
+    legend.title = element_text(size = 10),
+    legend.text = element_text(size = 8),
+    axis.text = element_blank(), 
+    axis.title = element_blank()
+    )
 ```
 
 ```{r}
@@ -431,6 +443,10 @@ The model is significant as a whole (F-statistic p = 0.028), meaning Temperature
 There is a suggestive positive trend with Temperature, but we cannot confidently reject H0.  
 
 The low R^2 (0.21) and adjusted R^2 (0.15) suggests other factors (e.g. day of week, work/leisure day, season) that influence activity space more than weather. 
+
+
+
+
 
 ## Influence of Weather on Walking
 
