@@ -1,13 +1,25 @@
 ---
 title: Weather Conditions and their Influence on human Mobility Patterns
-subtitle: A descriptive approach
+subtitle: GEO 880 Project
 author: Lars Weidinger & Javier Feller
-format:
+date: today
+format: 
   html:
+    fig_caption: true
+    fig-align: center
+    highlight: tango
+    number-sections: false
     code-fold: true
-execute:
+    theme: lumen
+    embed-resources: true
+    toc: true
+    toc_depth: 2
+    toc_float: true
+execute:                      # Set global options for execution of code blocks
+  echo: true                  # False = no code printed
   warning: false
   message: false
+editor: source
 lang: en
 bibliography: bibliography.bib
 ---
@@ -42,6 +54,8 @@ Filter machen für die Abschnitte, bei denen wir die gleichen Informationen habe
 
 Alternative Datensätze: Tageslicht? Stürme? 
 
+Ran Nathan's Movement Ecology Paradigm: wo befinden wir usn mit diesem Project, ist evtl. v.a. bei der Discussion relevant
+
 
 # Abstract
 
@@ -63,10 +77,10 @@ pacman::p_load(here,
                dplyr,
                ggplot2,
                tidyr,
-               jsonlite,
+               jsonlite, # to import JSON files
                lubridate, # temporal import from JSON file
                tidyverse,
-               leaflet, # interactive maps
+               leaflet, # interactive maps, more personal experience than on tmap
                tmap, # interactive maps
                concaveman, # construct concave hulls
                install = TRUE)
@@ -82,52 +96,19 @@ crs_wgs84 <- 4326
 ## Import Data
 See the preprocessing.R file where we import:  
 - weather data  
-- tracking data  
-- boundary data?
-
-```{r}
-stadtgrenze <- read_sf("data/Gemeindegrenzen_OGD/Gemeindegrenzen_-OGD.gpkg", layer = "up_gemeinden_f") |> # take the polygon
-  filter(gemeindename == "Zürich") |> # of the city of Zurich
-  select(geom)
-```
+- weather station location data  
+- tracking data   
+- city boundary data  
 
 ## Visualise Weather Data Daily
 
 ### Locating Weather Stations
-Since the data did not provide coordinates of the measuring stations, we manually took the CH1903+ coordinates of points that have to be close to the actual measuring stations using map.geo.admin.ch. We will ask the City of Zurich for the exact locations of the stations but for now this is our approximation for the moment. 
-
-```{r}
-weather_stations <- data.frame(
-  Standort = c(
-    "Zch_Heubeeribüel",
-    "Zch_Rosengartenstrasse",
-    "Zch_Schimmelstrasse",
-    "Zch_Stampfenbachstrasse"
-  ),
-  E = c(
-    2685280.12,
-    2682050.59,
-    2682105.79,
-    2683454.71
-  ),
-  N = c(
-    1248962.89,
-    1249880.93,
-    1247104.63,
-    1248019.62
-  )
-)
-
-weather_stations_sf <- st_as_sf(
-  weather_stations,
-  coords = c("E", "N"),
-  crs = crs_lv95)
-```
+In the provided metadata JSON file the location of the weather stations can be found. We imported and cleaned the metadat in the preprocessing file. 
 
 ```{r}
 ggplot() +
   geom_sf(data = stadtgrenze, fill = "#D5F4FF", color = "black") +
-  geom_sf(data = weather_stations_sf, aes(color = Standort), size = 3) +
+  geom_sf(data = weather_stations_sf, aes(color = ID), size = 3) +
   
   coord_sf(datum = crs_lv95) +
   
@@ -170,7 +151,7 @@ voronoi_polygons <- st_collection_extract(voronoi, "POLYGON")
 
 # convert to sf object
 voronoi_sf <- st_sf(
-  Standort = weather_stations_sf$Standort,
+  ID = weather_stations_sf$ID,
   geometry = st_cast(voronoi_polygons))
 
 # clip to city boundary
@@ -179,7 +160,7 @@ voronoi_clipped <- sf::st_intersection(voronoi_sf, stadtgrenze)
 
 ```{r}
 ggplot() +
-  geom_sf(data = voronoi_clipped, aes(fill = Standort)) +
+  geom_sf(data = voronoi_clipped, aes(fill = ID)) +
   
   coord_sf(datum = crs_lv95) +
   
@@ -207,10 +188,10 @@ Since we traveled quite a lot outside of the city of Zurich, we omit the data ou
 ```{r}
 # both datasets are in CH1903+
 
-# spatial join: assign polygon attributes (Standort) to points
+# spatial join: assign polygon attributes (ID) to points
 google_timeline_sf_lv95 <- st_join(
   google_timeline_sf_lv95,
-  voronoi_clipped["Standort"],
+  voronoi_clipped["ID"],
   join = st_within) |>
   
   drop_na() # omit NA values (quite a lot of them)
@@ -269,7 +250,8 @@ weather_daily_df_wide <- weather_daily_df |>
   ) |>
   rename(
     Temperature = T,
-    RainDur = RainDur
+    RainDur = RainDur, 
+    ID = Standort
   )
 ```
 
@@ -278,14 +260,14 @@ weather_daily_df_wide <- weather_daily_df |>
 google_timeline_weather <- google_timeline_sf_lv95 |>
   left_join(
     weather_daily_df_wide,
-    by = c("Date", "Standort")
+    by = c("Date", "ID")
   )
 ```
 
 ```{r}
 # visualise timeline points with voronoi polygons
 ggplot() +
-  geom_sf(data = voronoi_clipped, aes(fill = Standort)) +
+  geom_sf(data = voronoi_clipped, aes(fill = ID)) +
   
   geom_sf(data = google_timeline_sf_lv95, color = "orange", size = 0.6) +
 
@@ -364,15 +346,14 @@ google_timeline_hulls <- google_timeline_hulls |>
 ```{r}
 # visualise concave hulls
 ggplot() +
-  geom_sf(data = stadtgrenze, fill = "#D5F4FF", color = "black") +
+  geom_sf(data = stadtgrenze, fill = "transparent", color = "black") +
   
-  geom_sf(data = daily_hulls_weather, fill = Temperature) +
-
-  coord_sf(datum = crs_lv95) +
+  geom_sf(data = google_timeline_hulls, aes(fill = as.factor(Date)), alpha = 0.6) +
+  
+  scale_fill_discrete(guide = "none") +
   
   labs(
     title = "Concave Hulls of Daily Movement in Zurich",
-    color = "Temperature [°C]",
     x = "Easting [m]",
     y = "Northing [m]") +
   
@@ -386,7 +367,6 @@ ggplot() +
     axis.title = element_blank()
     )
 ```
-
 
 ### Assign Weather Values
 ```{r}
@@ -439,7 +419,6 @@ lm1 <- lm(log(area_km2) ~ Temperature + RainDur, data = daily_hulls_weather)
 # full model summary (R^2, adjusted R^2, p-values, residual std error)
 summary(lm1)
 
-
 par(mfrow = c(1, 1))
 plot(lm1, which = 1)  # Residuals vs Fitted
 plot(lm1, which = 2)  # Q-Q plot
@@ -452,6 +431,7 @@ The model is significant as a whole (F-statistic p = 0.028), meaning Temperature
 There is a suggestive positive trend with Temperature, but we cannot confidently reject H0.  
 
 The low R^2 (0.21) and adjusted R^2 (0.15) suggests other factors (e.g. day of week, work/leisure day, season) that influence activity space more than weather. 
+
 ## Influence of Weather on Walking
 
 Travel Mode detection
