@@ -46,7 +46,6 @@ Filter machen für die Abschnitte, bei denen wir die gleichen Informationen habe
 
 2) Dann genauer schauen mit Meteodaten (1h oder 15min) --> Temperatur als Feld modellieren, nicht als Voronoi Polygone
 
-
 3) Dann noch genauer schauen und zwar nur dort, wo man gelaufen ist.
 - gibt es Unterschiede in Laufdistanz oder Laufgeschwindigkeit je nach Temperatur?
 
@@ -86,6 +85,7 @@ pacman::p_load(here,
                concaveman, # construct concave hulls
                gstat, # for IDW
                stars, # to create a grid
+               purrr,
                install = TRUE)
 
 ```
@@ -103,7 +103,7 @@ See the preprocessing.R file where we import:
 - tracking data   
 - city boundary data  
 
-## Visualise Weather Data Daily (Voronoi Polygon)
+## Weather Data Daily (Voronoi Polygon)
 
 ### Locating Weather Stations
 In the provided metadata JSON file the location of the weather stations can be found. We imported and cleaned the metadat in the preprocessing file. 
@@ -414,8 +414,20 @@ ggplot() +
 ```
 
 ```{r}
+# visualise the variable Temperature
+ggplot(daily_hulls_weather, aes(x = Temperature, y = log(area_m2))) +
+  geom_point() +
+  geom_smooth(method = "lm", se = TRUE) +
+  labs(
+    x = "Temperature (°C)",
+    y = "log(Activity Space Area km²)",
+    title = "Activity Space vs Temperature") +
+  theme_minimal()
+```
+
+```{r}
 # visualise the variable RainDur
-ggplot(daily_hulls_weather, aes(x = RainDur, y = log(area_km2))) +
+ggplot(daily_hulls_weather, aes(x = RainDur, y = log(area_m2))) +
   geom_point() +
   geom_smooth(method = "lm", se = TRUE) +
   labs(
@@ -425,9 +437,10 @@ ggplot(daily_hulls_weather, aes(x = RainDur, y = log(area_km2))) +
   theme_minimal()
 ```
 
+### Statistical Analysis
 ```{r}
 # linear model with log(area)
-lm1 <- lm(log(area_km2) ~ Temperature + RainDur, data = daily_hulls_weather)
+lm1 <- lm(log(area_m2) ~ Temperature + RainDur, data = daily_hulls_weather)
 ```
 
 ```{r}
@@ -447,7 +460,7 @@ There is a suggestive positive trend with Temperature, but we cannot confidently
 
 The low R^2 (0.21) and adjusted R^2 (0.15) suggests other factors (e.g. day of week, work/leisure day, season) that influence activity space more than weather. 
 
-## Visualise Weather Daily (Field)
+## Weather Daily (Field)
 We only have weather measurements at at a handful of stations across the city. Assigning each location fix the weather data of the Voronoi polygon of the station it is in, is simplistic. Weather changes somewhat gradually across space, a more "fluid" approach would be better. That is why we decided on using Inverse Distance Weighting (IDW), which is a simple approach to generate gradually changing values across space using some sort of tessellation.  
 With only few stations the interpolation accuracy will be low. We are not capturing real microclimate variation like urban heat island effects or cooling green spaces and water bodies. But since we plan on repeating our method with the finer scaled Meteoblue stations, we decided on applying the IDW method. 
 
@@ -456,34 +469,149 @@ Since we do not want to compute a full raster per day we will do a point-wise ID
 A raster per timestamp needs a lot of computation time and we only need the value at the fix's exact coordinates. Point-wise IDW is just a weighted average of all the distance, which takes much less time and we avoid avoid managing hundreds of rasters.
 
 ### Inverse Distance Weighting (IDW)
+
 ```{r}
-# this code chunk was constructed with the help of Claude 
+# this code chunk was constructed with the help of Claude (Sonnet 4.6)
 
-# join station coordinates to daily weather data
-weather_long <- weather_daily_df_wide |>
-  left_join(st_drop_geometry(weather_stations_sf) |> 
-              select(ID, geometry), by = c("Station_name" = "ID"))
+idw_for_date <- function(fixes_date, stations_date, power = 2) {
+  # fixes_date: sf object for this date
+  # stations_date: sf object with Temperature, RainDur for this date
+  # power = 2 is the standard value
+  
+  # full distance matrix: n_fixes x n_stations
+  dist_mat <- st_distance(fixes_date, stations_date)
+  dist_mat <- matrix(as.numeric(dist_mat), nrow = nrow(fixes_date), ncol = nrow(stations_date))
+  
+  # avoid division by zero
+  dist_mat[dist_mat == 0] <- 1e-9
+  
+  weights <- 1 / (dist_mat^power)
+  weights_norm <- weights / rowSums(weights)
+  
+  fixes_date |>
+    mutate(
+      Temperature_IDW = as.numeric(weights_norm %*% stations_date$Temperature),
 
-# function: IDW prediction for one point given that day's station data
-idw_predict <- function(x, y, date, weather_long, power = 2) {
-  day_data <- weather_long |> filter(Date == date, !is.na(Temperature))
-  
-  if (nrow(day_data) == 0) return(NA_real_)
-  
-  dists <- sqrt((day_data$Koordinaten_LV95_X - x)^2 + (day_data$Koordinaten_LV95_Y - y)^2)
-  
-  # avoid division by zero if fix is exactly at a station
-  if (any(dists == 0)) return(day_data$Temperature[which(dists == 0)[1]])
-  
-  weights <- 1 / (dists^power)
-  sum(weights * day_data$Temperature) / sum(weights)
+      RainDur_IDW = apply(weights_norm, 1,
+                          function(w) {
+                            valid <- !is.na(stations_date$RainDur) # ignore stations with missing RainDur
+                            
+                            if(sum(valid) == 0) {
+                              return(NA)
+                              }
+                            
+                            w_valid <- w[valid]
+                            rain_valid <- stations_date$RainDur[valid]
+                            
+                            # renormalize weights only along valid stations
+                            w_valid <- w_valid / sum(w_valid)
+                            
+                            sum(w_valid * rain_valid)
+                            }
+                          )
+      )
 }
 
-# apply to  Google timeline data (assumed columns: X, Y, Date)
-timeline_data <- timeline_data |>
-  rowwise() |>
-  mutate(interpolated_temp = idw_predict(X, Y, Date, weather_long)) |>
-  ungroup()
+
+# apply per date (groups are small: one per day x n_stations)
+unique_dates <- unique(google_timeline_sf_lv95$Date)
+
+result_list <- map(unique_dates, function(d) {
+  fixes_date <- google_timeline_sf_lv95 |>
+    filter(Date == d)
+  stations_date <- weather_daily_df_wide |>
+    filter(Date == d) |>
+    inner_join(st_drop_geometry(weather_stations_sf) |>
+                 select(ID), by = "ID") |>
+    left_join(weather_stations_sf |>
+                select(ID, geometry), by = "ID") |>
+    st_as_sf()
+  
+  if (nrow(stations_date) == 0) {
+    fixes_date$Temperature_IDW <- NA
+    fixes_date$RainDur_IDW <- NA
+    return(fixes_date)
+  }
+  
+  idw_for_date(fixes_date, stations_date)
+})
+
+google_timeline_weather_daily <- bind_rows(result_list)
+```
+
+### Assign Weather Values
+```{r}
+# average weather values across whole hull
+daily_weather_field <- google_timeline_weather_daily |>
+  st_drop_geometry() |>
+  group_by(Date) |>
+  summarise(
+    Temperature = mean(Temperature_IDW, na.rm = TRUE),
+    RainDur = mean(RainDur_IDW, na.rm = TRUE)
+  )
+
+daily_hulls_weather_field <- google_timeline_hulls |>
+  left_join(daily_weather_field, by = "Date")
+```
+
+```{r}
+# visualise the variable Temperature
+ggplot(daily_hulls_weather_field, aes(x = Temperature, y = log(area_m2))) +
+  geom_point() +
+  geom_smooth(method = "lm", se = TRUE) +
+  labs(
+    x = "Temperature (°C)",
+    y = "log(Activity Space Area km²)",
+    title = "Activity Space vs Temperature") +
+  theme_minimal()
+```
+
+```{r}
+# visualise the variable RainDur
+ggplot(daily_hulls_weather_field, aes(x = RainDur, y = log(area_m2))) +
+  geom_point() +
+  geom_smooth(method = "lm", se = TRUE) +
+  labs(
+    x = "Rain Duration (min)",
+    y = "log(Activity Space Area km²)",
+    title = "Activity Space vs Rain Duration") +
+  theme_minimal()
+```
+
+### Statistical Analysis
+```{r}
+# linear model with log(area)
+lm2 <- lm(log(area_m2) ~ Temperature + RainDur, data = daily_hulls_weather_field)
+```
+
+```{r}
+# full model summary (R^2, adjusted R^2, p-values, residual std error)
+summary(lm2)
+```
+
+The P-value of the RainDur is slightly lower than from lm1, indicating that the interpolation of precipitation duration is a more appropriate way of identifiying a relationship between weather and movement.  
+Furthermore, the R^2 and Adjusted R^2 values are slightly higher, meaning that our interpolated model explains a bit more of the values than the model with the Voronoi polygons. 
+
+## Weather Hourly (Field)
+Now that we have established that weather data is more accurate when using IDW to interpolate values between stations, we will repeat this process with the hourly weather data.  
+The measurements are taken by the same stations as for the daily weather data. Therefore, we only really need to adapt the input data. The concave hulls will stay the same, we will still take all fixes from one day into account.
+
+### Prepare Weather Data
+
+```{r}
+# prepare weather data
+weather_hourly_df_wide <- weather_hourly_df |>
+  filter(Parameter %in% c("T", "RainDur")) |> # we only want T and RainDur
+  select(Date, Standort, Parameter, Wert) |>
+  pivot_wider(                               # we need the parameters as columns
+    names_from = Parameter,
+    values_from = Wert
+  ) |>
+  rename(
+    Temperature = T,
+    RainDur = RainDur, 
+    ID = Standort
+  )
 ```
 
 
