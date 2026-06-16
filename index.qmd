@@ -597,12 +597,11 @@ Now that we have established that weather data is more accurate when using IDW t
 The measurements are taken by the same stations as for the daily weather data. Therefore, we only really need to adapt the input data. The concave hulls will stay the same, we will still take all fixes from one day into account.
 
 ### Prepare Weather Data
-
 ```{r}
 # prepare weather data
 weather_hourly_df_wide <- weather_hourly_df |>
   filter(Parameter %in% c("T", "RainDur")) |> # we only want T and RainDur
-  select(Date, Standort, Parameter, Wert) |>
+  select(Datum, Standort, Parameter, Wert) |>
   pivot_wider(                               # we need the parameters as columns
     names_from = Parameter,
     values_from = Wert
@@ -614,6 +613,132 @@ weather_hourly_df_wide <- weather_hourly_df |>
   )
 ```
 
+```{r}
+google_timeline_sf_lv95 <- google_timeline_sf_lv95 |>
+  mutate(
+    Datum = floor_date(time, unit = "hour")
+  )
+```
+
+### Inverse Distance Weighting (IDW)
+```{r}
+# this code chunk was constructed with the help of Claude (Sonnet 4.6)
+
+idw_for_hour <- function(fixes_date, stations_date, power = 2) {
+  # fixes_date: sf object for this date
+  # stations_date: sf object with Temperature, RainDur for this date
+  # power = 2 is the standard value
+  
+  # full distance matrix: n_fixes x n_stations
+  dist_mat <- st_distance(fixes_date, stations_date)
+  dist_mat <- matrix(as.numeric(dist_mat), nrow = nrow(fixes_date), ncol = nrow(stations_date))
+  
+  # avoid division by zero
+  dist_mat[dist_mat == 0] <- 1e-9
+  
+  weights <- 1 / (dist_mat^power)
+  weights_norm <- weights / rowSums(weights)
+  
+  fixes_date |>
+    mutate(
+      Temperature_IDW = as.numeric(weights_norm %*% stations_date$Temperature),
+
+      RainDur_IDW = apply(weights_norm, 1,
+                          function(w) {
+                            valid <- !is.na(stations_date$RainDur) # ignore stations with missing RainDur
+                            
+                            if(sum(valid) == 0) {
+                              return(NA)
+                              }
+                            
+                            w_valid <- w[valid]
+                            rain_valid <- stations_date$RainDur[valid]
+                            
+                            # renormalize weights only along valid stations
+                            w_valid <- w_valid / sum(w_valid)
+                            
+                            sum(w_valid * rain_valid)
+                            }
+                          )
+      )
+}
+
+
+# apply per hour (groups are small: one per day x n_stations)
+unique_hours <- unique(google_timeline_sf_lv95$Datum)
+
+result_list <- map(unique_hours, function(h) {
+  fixes_hour <- google_timeline_sf_lv95 |>
+    filter(Datum == h)
+  stations_hour <- weather_hourly_df_wide |>
+    filter(Datum == h) |>
+    inner_join(st_drop_geometry(weather_stations_sf) |>
+                 select(ID), by = "ID") |>
+    left_join(weather_stations_sf |>
+                select(ID, geometry), by = "ID") |>
+    st_as_sf()
+  
+  if (nrow(stations_hour) == 0) {
+    fixes_hour$Temperature_IDW <- NA
+    fixes_hour$RainDur_IDW <- NA
+    return(fixes_hour)
+  }
+  
+  idw_for_hour(fixes_hour, stations_hour)
+})
+
+google_timeline_weather_hourly <- bind_rows(result_list)
+```
+
+### Assign Weather Values
+```{r}
+# average weather values across whole hull but still for the whole day
+hourly_weather_field <- google_timeline_weather_hourly |>
+  st_drop_geometry() |>
+  group_by(Date) |>
+  summarise(
+    Temperature = mean(Temperature_IDW, na.rm = TRUE),
+    RainDur = mean(RainDur_IDW, na.rm = TRUE)
+  )
+
+hourly_hulls_weather_field <- google_timeline_hulls |>
+  left_join(hourly_weather_field, by = "Date")
+```
+
+```{r}
+# visualise the variable Temperature
+ggplot(hourly_hulls_weather_field, aes(x = Temperature, y = log(area_m2))) +
+  geom_point() +
+  geom_smooth(method = "lm", se = TRUE) +
+  labs(
+    x = "Temperature (°C)",
+    y = "log(Activity Space Area km²)",
+    title = "Activity Space vs Temperature") +
+  theme_minimal()
+```
+
+```{r}
+# visualise the variable RainDur
+ggplot(hourly_hulls_weather_field, aes(x = RainDur, y = log(area_m2))) +
+  geom_point() +
+  geom_smooth(method = "lm", se = TRUE) +
+  labs(
+    x = "Rain Duration (min)",
+    y = "log(Activity Space Area km²)",
+    title = "Activity Space vs Rain Duration") +
+  theme_minimal()
+```
+
+### Statistical Analysis
+```{r}
+# linear model with log(area)
+lm3 <- lm(log(area_m2) ~ Temperature + RainDur, data = hourly_hulls_weather_field)
+```
+
+```{r}
+# full model summary (R^2, adjusted R^2, p-values, residual std error)
+summary(lm3)
+```
 
 
 ## Influence of Weather on Walking
