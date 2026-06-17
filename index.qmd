@@ -794,8 +794,9 @@ segments_spatial <- st_join(
   join = st_intersects
 )
 ```
-  
+
 ```{r}
+#clean
 segments_clean <- segments_spatial |>
   st_drop_geometry()
 ```
@@ -810,8 +811,11 @@ segments_weather <- segments_clean |>
   slice_min(time_diff, n = 1, with_ties = FALSE) |>
   ungroup()
 ```
+
 ```{r}
-segments_weather_clean <- segments_weather |>
+#filter unrealistic values
+segments_weather_clean <- segments_weather %>%
+  filter(time_diff <= 120) %>%
   filter(
     speed_kmh >= quantile(speed_kmh, 0.02, na.rm = TRUE),
     speed_kmh <= quantile(speed_kmh, 0.98, na.rm = TRUE)
@@ -819,6 +823,11 @@ segments_weather_clean <- segments_weather |>
 ```
 
 ```{r}
+#check if temporal join worked
+summary(segments_weather_clean$time_diff)
+```
+```{r}
+#visualize
 ggplot(segments_weather_clean, aes(x = value, y = speed_kmh)) +
   geom_point(alpha = 0.3) +
   geom_smooth(method = "lm") +
@@ -834,27 +843,73 @@ ggplot(segments_weather_clean, aes(x = value, y = speed_kmh)) +
 trend <- lm(speed_kmh ~ value, data=segments_weather_clean)
 summary(trend)
 ```
+
 ```{r}
-summary(trend)$r.squared
+segments_weather_clean <- segments_weather_clean %>%
+  mutate(
+    temp_group = cut(value,
+                     breaks = quantile(value, probs = seq(0, 1, 0.25), na.rm = TRUE),
+                     include.lowest = TRUE)
+  )
+
+lm(speed_kmh ~ temp_group, data = segments_weather_clean)
 ```
-
-
 ```{r}
-ggplot(weekend_data, aes(x = value, y = speed_kmh)) +
-  geom_point(alpha = 0.3) +
-  geom_smooth(method = "lm") +
-  coord_cartesian(ylim = c(0, 10)) +
+anova(lm(speed_kmh ~ temp_group, data = segments_weather_clean))
+```
+```{r}
+library(ggplot2)
+
+ggplot(segments_weather_clean, aes(x = temp_group, y = speed_kmh)) +
+  geom_boxplot(fill = "lightblue") +
+  geom_jitter(width = 0.2, alpha = 0.3) +
   theme_minimal() +
   labs(
-    x = "Temperature (°C)",
-    y = "Speed (km/h)"
+    x = "Temperature group",
+    y = "Walking speed (km/h)"
+  )
+```
+```{r}
+ggplot(segments_weather_clean, aes(x = temp_group, y = speed_kmh)) +
+  geom_boxplot(fill = "lightblue") +
+  geom_jitter(width = 0.2, alpha = 0.3) +
+  theme_minimal() +
+  scale_x_discrete(labels = c(
+    "(1,4.19]" = "Cold",
+    "(4.2,9]" = "Cool",
+    "(9,13.3]" = "Temperate",
+    "(13.3,26.6]" = "Warm"
+  )) +
+  labs(
+    x = "Temperature group",
+    y = "Walking speed (km/h)"
+  )
+```
+```{r}
+segments_weather_clean <- segments_weather_clean %>%
+  mutate(temp_group = factor(temp_group,
+                             levels = levels(temp_group),
+                             labels = c("Cold (1-4°C)", "Cool (4-9°C)", "Mild (9-13°C)", "Warm (13-26°C)")))
+```
+
+```{r}
+segments_weather_clean <- segments_weather_clean %>%
+  filter(!is.na(temp_group))
+```
+
+```{r}
+ggplot(segments_weather_clean, aes(x = temp_group, y = speed_kmh)) +
+  geom_boxplot(fill = "lightblue") +
+  geom_jitter(width = 0.2, alpha = 0.3) +
+  theme_minimal() +
+  labs(
+    x = "Temperature group",
+    y = "Walking speed (km/h)"
   )
 ```
 
-```{r}
-trend <- lm(speed_kmh ~ value, data=weekend_data)
-summary(trend)
-```
+# analysis of acceleration-vs temperature
+
 
 
 ```{r}
