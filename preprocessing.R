@@ -83,7 +83,7 @@ if (str_detect(url3, ".csv")) {
 
 # IMPORTANT: this step was added in manually after we realised that the station with the locationID "F2" had invalid coordinates in CH1903+/LV95 (268019381,125276801). 
 # We therefore wrote an Email to Open Data Zürich and let them know about this error. As a quick fix we decided on simply filtering out entries that had more than 7 digits in the CH1903+/LV95 coordinate columns. 
-# Since we access the stations via API, this short code snippet will become obsolete as soon as the have fixed the coordinates.
+# Since we access the stations via API, this short code snippet will become obsolete as soon as the have fixed the coordinates (Edit: they fixed it on 17.06.2026)
 meteoblue_stations  <- meteoblue_stations |> 
   filter(
     nchar(as.character(EKoord)) <= 7,
@@ -92,7 +92,7 @@ meteoblue_stations  <- meteoblue_stations |>
 
 # Open Government Data, OpenDataZurich, "Stadtklima Zürich - bereinigte Temperaturmessungen Messnetz meteoblue"
 # The following code is provided by the City of Zurich and can be found under this link: https://github.com/opendatazurich/starter-code/blob/main/01_r-markdown/ugz_stadtklima_zuerich_temperaturmessungen_messnetz_meteoblue_e8e7bfc7-d7c6-4ff2-aeb0-35b15a90b959.Rmd
-# all dates are in "Winterzeit (UTC+1)" 
+# all dates are in UTC+0" 
 
 # Identifies requests from this notebook in the OpenDataZurich access logs.
 # Picked up by curl-based readers (readr, arrow) via base R's HTTPUserAgent option.
@@ -108,6 +108,12 @@ if (str_detect(url4, ".csv")) {
 } else {
   print("File format not recognised!")
 }
+
+# add 1h to make it comparable to the rest of the data which is in UTC+1
+meteoblue_weather_data <- meteoblue_weather_data |>
+  mutate(
+    timestamp = timestamp + lubridate::hours(1)
+  )
 
 # city boundary layer
 stadtgrenze <- read_sf("data/Gemeindegrenzen_OGD/Gemeindegrenzen_-OGD.gpkg", layer = "up_gemeinden_f") |> # take the polygon
