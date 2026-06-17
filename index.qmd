@@ -27,45 +27,56 @@ bibliography: bibliography.bib
 ```{r preprocessing}
 #| code-summary: preprocessing
 source("preprocessing.R") # this runs the whole preprocessing file
-``` 
+```
 
 # Notes from Project Proposal Call
-Meteo Daten Stunde vs. Tag --> ausprobieren
 
-Sample zu klein wahrscheinlich, Stunde sieht man probably mehr Muster
-andere Studierende? 
+Meteo Daten Stunde vs. Tag --\> ausprobieren
 
-Map Matching --> nicht nötig für unser Projekt
+Sample zu klein wahrscheinlich, Stunde sieht man probably mehr Muster andere Studierende?
 
-Timeline vs. ArcGIS Earth --> wie kann man das vergleichen?
-Filter machen für die Abschnitte, bei denen wir die gleichen Informationen haben
---> falls zu aufwändig, dann treffen wir eine pragmatische Entscheidung und halten das so fest (Vereinfachung) 
+Map Matching --\> nicht nötig für unser Projekt
 
-1) Anschauen, ob man mit Meteodaten (1 Tag) Unterschiede auf dem gesamten Datensatz sieht. 
-- Zu Beginn explorativ anschauen, ob es Unterschiede gibt von Wochentagen und Wochenenden
+Timeline vs. ArcGIS Earth --\> wie kann man das vergleichen? Filter machen für die Abschnitte, bei denen wir die gleichen Informationen haben --\> falls zu aufwändig, dann treffen wir eine pragmatische Entscheidung und halten das so fest (Vereinfachung)
 
-2) Dann genauer schauen mit Meteodaten (1h oder 15min) --> Temperatur als Feld modellieren, nicht als Voronoi Polygone
+1)  Anschauen, ob man mit Meteodaten (1 Tag) Unterschiede auf dem gesamten Datensatz sieht.
 
-3) Dann noch genauer schauen und zwar nur dort, wo man gelaufen ist.
-- gibt es Unterschiede in Laufdistanz oder Laufgeschwindigkeit je nach Temperatur?
+-   Zu Beginn explorativ anschauen, ob es Unterschiede gibt von Wochentagen und Wochenenden
 
-4) Falls man keine krassen Unterschiede sieht --> zwei Ansätze miteinander vergleichen (z.B. 15min vs. 1h oder 1 Tag) 
---> geht um konzeptueller Approach, Ergebnisse sind nicht so relevant
+2)  Dann genauer schauen mit Meteodaten (1h oder 15min) --\> Temperatur als Feld modellieren, nicht als Voronoi Polygone
 
-Alternative Datensätze: Tageslicht? Stürme? 
+3)  Dann noch genauer schauen und zwar nur dort, wo man gelaufen ist.
+
+-   gibt es Unterschiede in Laufdistanz oder Laufgeschwindigkeit je nach Temperatur?
+
+4)  Falls man keine krassen Unterschiede sieht --\> zwei Ansätze miteinander vergleichen (z.B. 15min vs. 1h oder 1 Tag) --\> geht um konzeptueller Approach, Ergebnisse sind nicht so relevant
+
+Alternative Datensätze: Tageslicht? Stürme?
 
 Ran Nathan's Movement Ecology Paradigm: wo befinden wir usn mit diesem Project, ist evtl. v.a. bei der Discussion relevant
-
 
 # Abstract
 
 # Introduction
 
-@laube2011 investigate how temporal scale affects the calculation of movement parameters (speed, sinuosity and turning angle) of animal trajectories. 
+@laube2011 investigate how temporal scale affects the calculation of movement parameters (speed, sinuosity and turning angle) of animal trajectories.
+
+1.  Study design\
+    • Research questions are clear, appropriate, realistic, addressable\
+    • Are study design choices motivated from the theory CMA?\
+    • Originality? Is it a simple extension of the exercises or are there own ideas?
+
+2.  Argument and Logic\
+    • Students have mastered the theory and use it for their argument, with references\
+    • Students show understanding of theory\
+    • What has been done in terms of literature review?
 
 # Material and Methods
 
+• How was research implemented addressing the Research questions? • What about problems and limitations and strategies overcoming these? • Simple solutions vs. own original techniques • Is the code properly commented/annotated?
+
 ## Load Packages
+
 ```{r}
 library(pacman)
 
@@ -91,22 +102,29 @@ pacman::p_load(here,
 ```
 
 ## Set CRS
+
 ```{r}
 crs_lv95  <- 2056
 crs_wgs84 <- 4326
 ```
 
 ## Import Data
+
 See the preprocessing.R file where we import:  
-- weather data  
-- weather station location data  
-- tracking data   
-- city boundary data  
+
+-   weather data (weather_daily_df, weather_hourly_df, meteoblue_weather_data)
+
+-   weather station location data (weather_stations_sf, meteoblue_stations)
+
+-   tracking data (google_timeline_sf_lv95)
+
+-   city boundary data (stadtgrenze)
 
 ## Weather Data Daily (Voronoi Polygon)
 
 ### Locating Weather Stations
-In the provided metadata JSON file the location of the weather stations can be found. We imported and cleaned the metadat in the preprocessing file. 
+
+In the provided metadata JSON file the location of the weather stations can be found. We imported and cleaned the metadata in the preprocessing file. In the below plot you can see the distribution of the stations across the city of Zurich. 
 
 ```{r}
 ggplot() +
@@ -133,7 +151,8 @@ ggplot() +
 ```
 
 ### Constrcut Voronoi Polygons around Measuring Stations
-Since we need to assign weather data to our stops and later our segments we need to relate the two datasets spatially. For that, we construct Voronoi polygons around the measuring stations and assign each tracking point the weather values from the station it is closest to (= inside the Voronoi polygon).
+
+Since we need to assign weather data to our stops and later our segments we need to relate the two datasets spatially. For that, we construct Voronoi polygons around the measuring stations. Later we can then assign each Google timeline fix the weather values from the station it is closest to (= inside the Voronoi polygon).
 
 ```{r}
 # both datasets are in CH1903+
@@ -185,8 +204,9 @@ ggplot() +
 ```
 
 ### Assign Google Timeline Data to Voronoi Polygons
-We can now use a spatial join to assign the corresponding weather station to each one of the Google Timeline tracking points.  
-Since we traveled quite a lot outside of the city of Zurich, we omit the data outside the city (NA values), which is approximately 60% of the data points. 
+
+We can now use a spatial join to assign the corresponding weather station to each of the Google timeline fixes.\
+Since we traveled quite a lot outside of the city of Zurich, we omit the data outside the city (NA values), which is approximately 60% of the data points.
 
 ```{r}
 # both datasets are in CH1903+
@@ -228,7 +248,8 @@ ggplot() +
 ```
 
 ### Assign Weather Data to Google Timeline Data
-Now that we have assigned each data point to its closest weather station, we need to assign them their relevant weather values. We decided on using temperature (T) and rain (RainDur). One problem is, that the station Heubeeribüel does not collect RainDur information. 
+
+Now that we have assigned each data point to its closest weather station, we need to assign them their relevant weather values. We decided on using temperature (T) and rain (RainDur). One problem is, that the station Heubeeribüel does not collect RainDur information.
 
 ```{r}
 # based on the exercises of week 5, Task 3 ff we first create a join key so that we can later match them exactly
@@ -296,11 +317,11 @@ ggplot() +
 
 ## Visualise Activity Space (Concave Hulls)
 
-To answer RQ II we need to construct some sort of measurement for activity space. We decided on constructing concave hulls around the trips for each day. We then can calculate the area of these hulls, take the average weather values across the whole hull and analyse if the area is larger when T is higher or P is lower.
+To answer RQ II we need to construct some sort of measurement for activity space. We decided on constructing concave hulls around the trips for each day. We then can calculate the area of these hulls, take the average weather values across the whole hull and analyse if the area is larger when temperature is higher or rain duration is lower.
 
-We decided to use concave hulls rather than convex hulls since they are less prone to outliers. Even though there are some convex hull implementations that allow for some sort of variable to be manipulated in order to exclude outliers (e.g. adehabitatHR::mcp()), the concave hull is more suited for our use case. We could have also used Alpha shapes (alphahull::) which accounts for holes in our data but this is not needed since we are dealing with cotinuous travel data. 
+We decided to use concave hulls rather than convex hulls since they are less prone to outliers. Even though there are some convex hull implementations that allow for some sort of variable to be manipulated in order to exclude outliers (e.g. adehabitatHR::mcp()), the concave hull is more suited for our use case. We could have also used Alpha shapes (alphahull::) which accounts for holes in our data but this is not needed since we are dealing with continuous travel data.
 
-QUELLE: GEO 872, 3. Vlsg 02.10.24 Point Patterns - Polygon Delineation
+QUELLE: GEO 872, 3. Vlsg 02.10.2024 Point Patterns - Polygon Delineation
 
 Alternative: Standard devitational ellipse (SDE): forms a closed shape that represents distributional properties of the point set but does not enclose all points.
 
@@ -372,6 +393,7 @@ ggplot() +
 ```
 
 ### Assign Weather Values
+
 ```{r}
 # average weather values across whole hull
 daily_weather <- google_timeline_weather |>
@@ -386,7 +408,8 @@ daily_hulls_weather <- google_timeline_hulls |>
   left_join(daily_weather, by = "Date")
 ```
 
-For visualisation purpose we show four random concave hulls. As can be seen in the below visualisation, the temperature assignment worked. 
+For visualisation purpose we show four random concave hulls. As can be seen in the below visualisation, the temperature assignment worked.
+
 ```{r}
 # visualise concave hulls with weather data
 ggplot() +
@@ -413,59 +436,12 @@ ggplot() +
     )
 ```
 
-```{r}
-# visualise the variable Temperature
-ggplot(daily_hulls_weather, aes(x = Temperature, y = log(area_m2))) +
-  geom_point() +
-  geom_smooth(method = "lm", se = TRUE) +
-  labs(
-    x = "Temperature (°C)",
-    y = "log(Activity Space Area km²)",
-    title = "Activity Space vs Temperature") +
-  theme_minimal()
-```
-
-```{r}
-# visualise the variable RainDur
-ggplot(daily_hulls_weather, aes(x = RainDur, y = log(area_m2))) +
-  geom_point() +
-  geom_smooth(method = "lm", se = TRUE) +
-  labs(
-    x = "Rain Duration (min)",
-    y = "log(Activity Space Area km²)",
-    title = "Activity Space vs Rain Duration") +
-  theme_minimal()
-```
-
-### Statistical Analysis
-```{r}
-# linear model with log(area)
-lm1 <- lm(log(area_m2) ~ Temperature + RainDur, data = daily_hulls_weather)
-```
-
-```{r}
-# full model summary (R^2, adjusted R^2, p-values, residual std error)
-summary(lm1)
-
-# delete comments if one wants to inspect the plots closer
-#par(mfrow = c(1, 1))
-#plot(lm1, which = 1)  # Residuals vs Fitted
-#plot(lm1, which = 2)  # Q-Q plot
-#plot(lm1, which = 3)  # Scale-Location
-#plot(lm1, which = 5)  # Residuals vs Leverage
-```
-
-The model is significant as a whole (F-statistic p = 0.028), meaning Temperature and RainDur together do explain some variation in activity space.  
-
-There is a suggestive positive trend with Temperature, but we cannot confidently reject H0.  
-
-The low R^2 (0.21) and adjusted R^2 (0.15) suggests other factors (e.g. day of week, work/leisure day, season) that influence activity space more than weather. 
-
 ## Weather Daily (Field)
-We only have weather measurements at at a handful of stations across the city. Assigning each location fix the weather data of the Voronoi polygon of the station it is in, is simplistic. Weather changes somewhat gradually across space, a more "fluid" approach would be better. That is why we decided on using Inverse Distance Weighting (IDW), which is a simple approach to generate gradually changing values across space using some sort of tessellation.  
-With only few stations the interpolation accuracy will be low. We are not capturing real microclimate variation like urban heat island effects or cooling green spaces and water bodies. But since we plan on repeating our method with the finer scaled Meteoblue stations, we decided on applying the IDW method. 
 
-Since we do not want to compute a full raster per day we will do a point-wise IDW prediction directly at each location fix's coordinates, using all weather station information. 
+We only have weather measurements at at a handful of stations across the city. Assigning each location fix the weather data of the Voronoi polygon of the station it is in, is simplistic. Weather changes somewhat gradually across space, a more "fluid" approach would be better. That is why we decided on using Inverse Distance Weighting (IDW), which is a simple approach to generate gradually changing values across space using some sort of tessellation.\
+With only few stations the interpolation accuracy will be low. We are not capturing real microclimate variation like urban heat island effects or cooling green spaces and water bodies. But since we plan on repeating our method with the finer scaled Meteoblue stations, we decided on applying the IDW method.
+
+Since we do not want to compute a full raster per day we will do a point-wise IDW prediction directly at each location fix's coordinates, using all weather station information.
 
 A raster per timestamp needs a lot of computation time and we only need the value at the fix's exact coordinates. Point-wise IDW is just a weighted average of all the distance, which takes much less time and we avoid avoid managing hundreds of rasters.
 
@@ -541,6 +517,7 @@ google_timeline_weather_daily <- bind_rows(result_list)
 ```
 
 ### Assign Weather Values
+
 ```{r}
 # average weather values across whole hull
 daily_weather_field <- google_timeline_weather_daily |>
@@ -555,49 +532,13 @@ daily_hulls_weather_field <- google_timeline_hulls |>
   left_join(daily_weather_field, by = "Date")
 ```
 
-```{r}
-# visualise the variable Temperature
-ggplot(daily_hulls_weather_field, aes(x = Temperature, y = log(area_m2))) +
-  geom_point() +
-  geom_smooth(method = "lm", se = TRUE) +
-  labs(
-    x = "Temperature (°C)",
-    y = "log(Activity Space Area km²)",
-    title = "Activity Space vs Temperature") +
-  theme_minimal()
-```
-
-```{r}
-# visualise the variable RainDur
-ggplot(daily_hulls_weather_field, aes(x = RainDur, y = log(area_m2))) +
-  geom_point() +
-  geom_smooth(method = "lm", se = TRUE) +
-  labs(
-    x = "Rain Duration (min)",
-    y = "log(Activity Space Area km²)",
-    title = "Activity Space vs Rain Duration") +
-  theme_minimal()
-```
-
-### Statistical Analysis
-```{r}
-# linear model with log(area)
-lm2 <- lm(log(area_m2) ~ Temperature + RainDur, data = daily_hulls_weather_field)
-```
-
-```{r}
-# full model summary (R^2, adjusted R^2, p-values, residual std error)
-summary(lm2)
-```
-
-The P-value of the RainDur is slightly lower than from lm1, indicating that the interpolation of precipitation duration is a more appropriate way of identifiying a relationship between weather and movement.  
-Furthermore, the R^2 and Adjusted R^2 values are slightly higher, meaning that our interpolated model explains a bit more of the values than the model with the Voronoi polygons. 
-
 ## Weather Hourly (Field)
-Now that we have established that weather data is more accurate when using IDW to interpolate values between stations, we will repeat this process with the hourly weather data.  
+
+Now that we have established that weather data is more accurate when using IDW to interpolate values between stations, we will repeat this process with the hourly weather data.\
 The measurements are taken by the same stations as for the daily weather data. Therefore, we only really need to adapt the input data. The concave hulls will stay the same, we will still take all fixes from one day into account.
 
 ### Prepare Weather Data
+
 ```{r}
 # prepare weather data
 weather_hourly_df_wide <- weather_hourly_df |>
@@ -622,6 +563,7 @@ google_timeline_sf_lv95 <- google_timeline_sf_lv95 |>
 ```
 
 ### Inverse Distance Weighting (IDW)
+
 ```{r}
 # this code chunk was constructed with the help of Claude (Sonnet 4.6)
 
@@ -692,6 +634,7 @@ google_timeline_weather_hourly <- bind_rows(result_list)
 ```
 
 ### Assign Weather Values
+
 ```{r}
 # average weather values across whole hull but still for the whole day
 hourly_weather_field <- google_timeline_weather_hourly |>
@@ -706,50 +649,13 @@ hourly_hulls_weather_field <- google_timeline_hulls |>
   left_join(hourly_weather_field, by = "Date")
 ```
 
-```{r}
-# visualise the variable Temperature
-ggplot(hourly_hulls_weather_field, aes(x = Temperature, y = log(area_m2))) +
-  geom_point() +
-  geom_smooth(method = "lm", se = TRUE) +
-  labs(
-    x = "Temperature (°C)",
-    y = "log(Activity Space Area km²)",
-    title = "Activity Space vs Temperature") +
-  theme_minimal()
-```
-
-```{r}
-# visualise the variable RainDur
-ggplot(hourly_hulls_weather_field, aes(x = RainDur, y = log(area_m2))) +
-  geom_point() +
-  geom_smooth(method = "lm", se = TRUE) +
-  labs(
-    x = "Rain Duration (min)",
-    y = "log(Activity Space Area km²)",
-    title = "Activity Space vs Rain Duration") +
-  theme_minimal()
-```
-
-### Statistical Analysis
-```{r}
-# linear model with log(area)
-lm3 <- lm(log(area_m2) ~ Temperature + RainDur, data = hourly_hulls_weather_field)
-```
-
-```{r}
-# full model summary (R^2, adjusted R^2, p-values, residual std error)
-summary(lm3)
-```
-
-We see a significant negative effect of RainDur on the movement area. The whole model explains much more of the variance since the Adjusted R^2 value is 0.15, meaning that 15% of the variance is explained with our model. Still, this is not a majority but a better model than the one with daily weather data. 
-
-If we have a look at for example the 24.03.2026 we can see the differences between aggregated daily and hourly weather data. The daily one says that on that date it was 8.1°C with a RainDur of 187 min, which is quite a lot. The hourly one says that it was 10.7°C with no rain. This means that while over the whole day, it rained quite a lot, we only moved while it was not raining and slightly warmer, effectively being a great example for our research questions. 
-
 ## Weather 15 min (Field)
-Now we want to go one step more into detail using the meteoblue weather data, which takes temperature measurements every 15 minutes at 93 stations across the whole city. It is important to note that meteoblue only measures temperature and not precipitation or rain duration. 
+
+Now we want to go one step more into detail using the meteoblue weather data, which takes temperature measurements every 15 minutes at 93 stations across the whole city. It is important to note that meteoblue only measures temperature and not precipitation or rain duration.
 
 ### Prepare Weather Data
-The meteoblue weather data is already in a wide format, therefore we do not need to change anything there. 
+
+The meteoblue weather data is already in a wide format, therefore we do not need to change anything there.
 
 ```{r}
 google_timeline_sf_lv95 <- google_timeline_sf_lv95 |>
@@ -759,7 +665,8 @@ google_timeline_sf_lv95 <- google_timeline_sf_lv95 |>
 ```
 
 ### Inverse Distance Weighting (IDW)
-If we would repeat the same code as earlier the runtime would increase significantly. Instead of hourly measurement of four stations we have 15 min measurements of 93 stations. 
+
+If we would repeat the same code as earlier the runtime would increase significantly. Instead of hourly measurement of four stations we have 15 min measurements of 93 stations.
 
 ```{r}
 # first we move the station preparation outside the loop --> so it does not get repeated all the time
@@ -824,6 +731,7 @@ google_timeline_weather_quarter_hourly <- bind_rows(result_list)
 ```
 
 ### Assign Weather Values
+
 ```{r}
 # average weather values across whole hull but still for the whole day
 quarter_hourly_weather_field <- google_timeline_weather_quarter_hourly |>
@@ -837,6 +745,150 @@ quarter_hourly_hulls_weather_field <- google_timeline_hulls |>
   left_join(quarter_hourly_weather_field, by = "Date")
 ```
 
+## Influence of Weather on Walking
+
+Travel Mode detection Fokus nur auf on foot --\> calculate speed for each segment
+
+--\> assign weather information to each segment
+
+# Results
+
+-   What was achieved overall? 
+-   How well are the results presented?
+-   How well are the results discussed in the light of the theory?
+
+## Statistical Analysis Movement Space vs Weather
+
+Earlier we assigned 
+
+### Daily - Voronoi Polygon
+
+```{r}
+# visualise the variable Temperature
+ggplot(daily_hulls_weather, aes(x = Temperature, y = log(area_m2))) +
+  geom_point() +
+  geom_smooth(method = "lm", se = TRUE) +
+  labs(
+    x = "Temperature (°C)",
+    y = "log(Activity Space Area km²)",
+    title = "Activity Space vs Temperature") +
+  theme_minimal()
+```
+
+```{r}
+# visualise the variable RainDur
+ggplot(daily_hulls_weather, aes(x = RainDur, y = log(area_m2))) +
+  geom_point() +
+  geom_smooth(method = "lm", se = TRUE) +
+  labs(
+    x = "Rain Duration (min)",
+    y = "log(Activity Space Area km²)",
+    title = "Activity Space vs Rain Duration") +
+  theme_minimal()
+```
+
+```{r}
+# linear model with log(area)
+lm1 <- lm(log(area_m2) ~ Temperature + RainDur, data = daily_hulls_weather)
+```
+
+```{r}
+# full model summary (R^2, adjusted R^2, p-values, residual std error)
+summary(lm1)
+
+# delete comments if one wants to inspect the plots closer
+#par(mfrow = c(1, 1))
+#plot(lm1, which = 1)  # Residuals vs Fitted
+#plot(lm1, which = 2)  # Q-Q plot
+#plot(lm1, which = 3)  # Scale-Location
+#plot(lm1, which = 5)  # Residuals vs Leverage
+```
+
+The model is significant as a whole (F-statistic p = 0.028), meaning Temperature and RainDur together do explain some variation in activity space.
+
+There is a suggestive positive trend with Temperature, but we cannot confidently reject H0.
+
+The low R\^2 (0.21) and adjusted R\^2 (0.15) suggests other factors (e.g. day of week, work/leisure day, season) that influence activity space more than weather.
+
+### Daily - Field
+
+```{r}
+# visualise the variable Temperature
+ggplot(daily_hulls_weather_field, aes(x = Temperature, y = log(area_m2))) +
+  geom_point() +
+  geom_smooth(method = "lm", se = TRUE) +
+  labs(
+    x = "Temperature (°C)",
+    y = "log(Activity Space Area km²)",
+    title = "Activity Space vs Temperature") +
+  theme_minimal()
+```
+
+```{r}
+# visualise the variable RainDur
+ggplot(daily_hulls_weather_field, aes(x = RainDur, y = log(area_m2))) +
+  geom_point() +
+  geom_smooth(method = "lm", se = TRUE) +
+  labs(
+    x = "Rain Duration (min)",
+    y = "log(Activity Space Area km²)",
+    title = "Activity Space vs Rain Duration") +
+  theme_minimal()
+```
+
+```{r}
+# linear model with log(area)
+lm2 <- lm(log(area_m2) ~ Temperature + RainDur, data = daily_hulls_weather_field)
+```
+
+```{r}
+# full model summary (R^2, adjusted R^2, p-values, residual std error)
+summary(lm2)
+```
+
+The P-value of the RainDur is slightly lower than from lm1, indicating that the interpolation of precipitation duration is a more appropriate way of identifiying a relationship between weather and movement.\
+Furthermore, the R\^2 and Adjusted R\^2 values are slightly higher, meaning that our interpolated model explains a bit more of the values than the model with the Voronoi polygons.
+
+### Hourly - Field
+```{r}
+# visualise the variable Temperature
+ggplot(hourly_hulls_weather_field, aes(x = Temperature, y = log(area_m2))) +
+  geom_point() +
+  geom_smooth(method = "lm", se = TRUE) +
+  labs(
+    x = "Temperature (°C)",
+    y = "log(Activity Space Area km²)",
+    title = "Activity Space vs Temperature") +
+  theme_minimal()
+```
+
+```{r}
+# visualise the variable RainDur
+ggplot(hourly_hulls_weather_field, aes(x = RainDur, y = log(area_m2))) +
+  geom_point() +
+  geom_smooth(method = "lm", se = TRUE) +
+  labs(
+    x = "Rain Duration (min)",
+    y = "log(Activity Space Area km²)",
+    title = "Activity Space vs Rain Duration") +
+  theme_minimal()
+```
+
+```{r}
+# linear model with log(area)
+lm3 <- lm(log(area_m2) ~ Temperature + RainDur, data = hourly_hulls_weather_field)
+```
+
+```{r}
+# full model summary (R^2, adjusted R^2, p-values, residual std error)
+summary(lm3)
+```
+
+We see a significant negative effect of RainDur on the movement area. The whole model explains much more of the variance since the Adjusted R\^2 value is 0.15, meaning that 15% of the variance is explained with our model. Still, this is not a majority but a better model than the one with daily weather data.
+
+If we have a look at for example the 24.03.2026 we can see the differences between aggregated daily and hourly weather data. The daily one says that on that date it was 8.1°C with a RainDur of 187 min, which is quite a lot. The hourly one says that it was 10.7°C with no rain. This means that while over the whole day, it rained quite a lot, we only moved while it was not raining and slightly warmer, effectively being a great example for our research questions.
+
+### 15 min - Field
 ```{r}
 # visualise the variable Temperature
 ggplot(quarter_hourly_hulls_weather_field, aes(x = Temperature, y = log(area_m2))) +
@@ -849,7 +901,6 @@ ggplot(quarter_hourly_hulls_weather_field, aes(x = Temperature, y = log(area_m2)
   theme_minimal()
 ```
 
-### Statistical Analysis
 ```{r}
 # linear model with log(area)
 lm4 <- lm(log(area_m2) ~ Temperature, data = quarter_hourly_hulls_weather_field)
@@ -862,17 +913,17 @@ summary(lm4)
 
 
 
-## Influence of Weather on Walking
-
-Travel Mode detection
-Fokus nur auf on foot
---> calculate speed for each segment
-
---> assign weather information to each segment
-
-# Results
 
 # Discussion
+
+Are the conclusions drawn from the project adequate and coherent? 
+-   Are problems that showed up been reported and alternative solutions proposed?
+-   Have data science choices been discussed in the light of the theory?
+
+Data Quality: 
+-   the Google timeline data only records stops --> we could have switched to SDE to also model our movement in between those fixes. 
+  -   aspace::calc_sde (https://www.rdocumentation.org/packages/aspace/versions/4.1.1/topics/calc_sde)
+  -   sfdep::std_dev_ellipse (https://cran.rstudio.com/web/packages/sfdep/sfdep.pdf)
 
 # Appendix
 
@@ -884,5 +935,3 @@ Fokus nur auf on foot
 #| eval: false
 wordcountaddin::word_count("index.qmd")
 ```
-
-
