@@ -447,11 +447,12 @@ lm1 <- lm(log(area_m2) ~ Temperature + RainDur, data = daily_hulls_weather)
 # full model summary (R^2, adjusted R^2, p-values, residual std error)
 summary(lm1)
 
-par(mfrow = c(1, 1))
-plot(lm1, which = 1)  # Residuals vs Fitted
-plot(lm1, which = 2)  # Q-Q plot
-plot(lm1, which = 3)  # Scale-Location
-plot(lm1, which = 5)  # Residuals vs Leverage
+# delete comments if one wants to inspect the plots closer
+#par(mfrow = c(1, 1))
+#plot(lm1, which = 1)  # Residuals vs Fitted
+#plot(lm1, which = 2)  # Q-Q plot
+#plot(lm1, which = 3)  # Scale-Location
+#plot(lm1, which = 5)  # Residuals vs Leverage
 ```
 
 The model is significant as a whole (F-statistic p = 0.028), meaning Temperature and RainDur together do explain some variation in activity space.  
@@ -664,7 +665,7 @@ idw_for_hour <- function(fixes_date, stations_date, power = 2) {
 }
 
 
-# apply per hour (groups are small: one per day x n_stations)
+# apply per hour 
 unique_hours <- unique(google_timeline_sf_lv95$Datum)
 
 result_list <- map(unique_hours, function(h) {
@@ -739,6 +740,126 @@ lm3 <- lm(log(area_m2) ~ Temperature + RainDur, data = hourly_hulls_weather_fiel
 # full model summary (R^2, adjusted R^2, p-values, residual std error)
 summary(lm3)
 ```
+
+We see a significant negative effect of RainDur on the movement area. The whole model explains much more of the variance since the Adjusted R^2 value is 0.15, meaning that 15% of the variance is explained with our model. Still, this is not a majority but a better model than the one with daily weather data. 
+
+If we have a look at for example the 24.03.2026 we can see the differences between aggregated daily and hourly weather data. The daily one says that on that date it was 8.1°C with a RainDur of 187 min, which is quite a lot. The hourly one says that it was 10.7°C with no rain. This means that while over the whole day, it rained quite a lot, we only moved while it was not raining and slightly warmer, effectively being a great example for our research questions. 
+
+## Weather 15 min (Field)
+Now we want to go one step more into detail using the meteoblue weather data, which takes temperature measurements every 15 minutes at 93 stations across the whole city. It is important to note that meteoblue only measures temperature and not precipitation or rain duration. 
+
+### Prepare Weather Data
+The meteoblue weather data is already in a wide format, therefore we do not need to change anything there. 
+
+```{r}
+google_timeline_sf_lv95 <- google_timeline_sf_lv95 |>
+  mutate(
+    QuarterHour = floor_date(time, unit = "15 min")
+  )
+```
+
+### Inverse Distance Weighting (IDW)
+If we would repeat the same code as earlier the runtime would increase significantly. Instead of hourly measurement of four stations we have 15 min measurements of 93 stations. 
+
+```{r}
+# first we move the station preparation outside the loop --> so it does not get repeated all the time
+meteoblue_weather_data_join <- meteoblue_weather_data |>
+  left_join(
+    meteoblue_stations |> 
+      select(locationID, EKoord, NKoord), by = "locationID") |>
+  st_as_sf(
+    coords = c("EKoord", "NKoord"),
+    crs = crs_lv95
+  )
+```
+
+```{r}
+# this code chunk was constructed with the help of Claude (Sonnet 4.6)
+
+idw_for_quarter_hour <- function(fixes_date, stations_date, power = 2) {
+  # fixes_date: sf object for this date
+  # stations_date: sf object with Temperature for this date
+  # power = 2 is the standard value
+  
+  # remove NA temperature stations
+  stations_date <- stations_date |>
+    filter(!is.na(value))
+  
+  # full distance matrix: n_fixes x n_stations
+  dist_mat <- st_distance(fixes_date, stations_date)
+  dist_mat <- matrix(as.numeric(dist_mat), nrow = nrow(fixes_date), ncol = nrow(stations_date))
+  
+  # avoid division by zero
+  dist_mat[dist_mat == 0] <- 1e-9
+  
+  weights <- 1 / (dist_mat^power)
+  weights_norm <- weights / rowSums(weights)
+  
+  fixes_date |>
+    mutate(
+      Temperature_IDW = as.numeric(weights_norm %*% stations_date$value)
+      )
+}
+
+# apply per quarter hour
+unique_quarter_hours <- unique(google_timeline_sf_lv95$QuarterHour)
+
+result_list <- map(unique_quarter_hours, function(q) {
+  
+  fixes_quarter_hour <- google_timeline_sf_lv95 |>
+    filter(QuarterHour == q)
+  
+  stations_quarter_hour <- meteoblue_weather_data_join |>
+    filter(timestamp == q)
+  
+  if (nrow(stations_quarter_hour) == 0) {
+    fixes_quarter_hour$Temperature_IDW <- NA
+    return(fixes_quarter_hour)
+  }
+  
+  idw_for_quarter_hour(fixes_quarter_hour, stations_quarter_hour)
+})
+
+google_timeline_weather_quarter_hourly <- bind_rows(result_list)
+```
+
+### Assign Weather Values
+```{r}
+# average weather values across whole hull but still for the whole day
+quarter_hourly_weather_field <- google_timeline_weather_quarter_hourly |>
+  st_drop_geometry() |>
+  group_by(Date) |>
+  summarise(
+    Temperature = mean(Temperature_IDW, na.rm = TRUE)
+    )
+
+quarter_hourly_hulls_weather_field <- google_timeline_hulls |>
+  left_join(quarter_hourly_weather_field, by = "Date")
+```
+
+```{r}
+# visualise the variable Temperature
+ggplot(quarter_hourly_hulls_weather_field, aes(x = Temperature, y = log(area_m2))) +
+  geom_point() +
+  geom_smooth(method = "lm", se = TRUE) +
+  labs(
+    x = "Temperature (°C)",
+    y = "log(Activity Space Area km²)",
+    title = "Activity Space vs Temperature") +
+  theme_minimal()
+```
+
+### Statistical Analysis
+```{r}
+# linear model with log(area)
+lm4 <- lm(log(area_m2) ~ Temperature, data = quarter_hourly_hulls_weather_field)
+```
+
+```{r}
+# full model summary (R^2, adjusted R^2, p-values, residual std error)
+summary(lm4)
+```
+
 
 
 ## Influence of Weather on Walking
