@@ -490,11 +490,380 @@ timeline_data <- timeline_data |>
 
 ## Influence of Weather on Walking
 
-Travel Mode detection
-Fokus nur auf on foot
---> calculate speed for each segment
+```{r}
+# Visualize ArcGisPro_trajectories
+ggplot() +
+  geom_sf(data = stadtgrenze, fill = "#D5F4FF", color = "black") +
+  geom_sf(data = pts_lv95, aes(color = "Name"), size = 3) +
+  
+  coord_sf(crs = crs_lv95) +
+  
+  labs(
+    title = "ArcGisPro trajectories in Zurich",
+    color = "Station",
+    x = "Easting [m]",
+    y = "Northing [m]"
+  ) +
+  
+  theme_minimal() +
+  
+  theme(
+    plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
+    legend.title = element_text(size = 10),
+    legend.text = element_text(size = 8),
+    axis.text = element_blank(), 
+    axis.title = element_blank()
+  )
+```
 
---> assign weather information to each segment
+## Segmentation of trajectories (stops and moves)
+
+```{r}
+#### state function, define two timesteps using lead and nothing, selecting right column with data$columnname and apply function to later and now, which was defined before, and store it
+difftime_secs <- function(later, now){
+    as.numeric(difftime(later, now, units = "secs"))
+}
+```
+
+```{r}
+later <- lead(tracks_lv95$timestamp)
+now <- tracks_lv95$timestamp
+
+tracks_lv95$timelag <- difftime_secs(later, now)
+```
+
+```{r}
+# sort after timestamp
+tracks_lv95 <- tracks_lv95 |>
+  arrange(timestamp)
+```
+
+```{r}
+# compute distance and time difference, with support of Chatgpt
+tracks_lv95 <- tracks_lv95 |>
+  mutate(
+    step_dist = as.numeric(st_distance(geometry, lead(geometry), by_element = TRUE)),
+    step_time = as.numeric(difftime(lead(timestamp), timestamp, units = "secs"))
+  )
+```
+
+```{r}
+# define treshold of moving window, movement if distance of 1 step more than 5 
+# meters in a time of less than 30 seconds.
+tracks_lv95 <- tracks_lv95 |>
+  mutate(
+    moving_step = step_dist > 5 & step_time < 30
+  )
+```
+
+```{r}
+#assign new segment_id each time transition from stop to move or vice versa
+#to connect the still separate points into segments, with support of Chatgpt
+tracks_lv95 <- tracks_lv95 |>
+  mutate(
+    change = moving_step != lag(moving_step, default = first(moving_step)),
+    segment_id = cumsum(change)
+  )
+```
+
+```{r}
+#calculate for each segment star time, end time, duration, geometry, speed
+#with support of Chatgpt
+segments <- tracks_lv95 |>
+  group_by(segment_id, moving_step) |>
+  summarise(
+    start_time = first(timestamp),
+    end_time = last(timestamp),
+
+    duration = as.numeric(
+      difftime(last(timestamp), first(timestamp), units = "secs")
+    ),
+
+    distance = sum(step_dist, na.rm = TRUE),
+
+    speed = ifelse(duration > 0, distance / duration, NA_real_),
+
+    speed_kmh = speed * 3.6,
+
+    n_points = n(),
+    geometry = st_union(geometry),
+    .groups = "drop"
+  )
+```
+
+```{r}
+segments <- segments |>
+  mutate(type = ifelse(moving_step, "MOVE", "STOP"))
+```
+
+```{r}
+# Visualize stops and moves together with city boundary
+ggplot() +
+  geom_sf(data = stadtgrenze,
+          fill = "#D5F4FF",
+          color = "black") +
+  geom_sf(data = segments,
+          aes(color = type),
+          size = 2) +
+  scale_color_manual(
+    values = c("STOP" = "blue", "MOVE" = "red")
+  ) +
+  coord_sf(crs = crs_lv95) +
+  theme_minimal()
+```
+
+
+## speed distrubtion
+
+```{r}
+# distribution of speed to cut boundaries
+quantile(segments$speed_kmh[segments$moving_step],
+         probs=c(0.5,0.9,0.95, 0.98),
+         na.rm = TRUE)
+```
+
+```{r}
+#trim uper tail, with support of chatgpt
+upper <- quantile(segments$speed_kmh, 0.975, na.rm = TRUE)
+
+segments_trim <- segments |>
+  filter(speed_kmh <= upper)
+```
+
+```{r}
+# boxplot for distribution, with support of chatgpt
+boxplot(
+  segments_trim$speed_kmh,
+  main = "Speed (km/h) – trimmed 2.5% tails",
+  ylab = "Speed (km/h)",
+  col = "lightgreen"
+)
+```
+## Travel Mode detection (focus on walking)
+```{r}
+# create only walking segments (speed between 0 and 7 km/h)
+walking_segments <- segments |> filter(segments$speed_kmh < 7 & segments$speed_kmh > 1 )
+```
+
+
+### Construct Voronoi Polygons around meteoblue measuring Stations to after/
+### wards assign every segment to the closest meteoblue weather station
+### this section with suppor of chatgpt
+
+```{r}
+# create geometry out of coords for meteoblue_stations
+meteoblue_sf <- meteoblue_stations |> st_as_sf(coords=c("lonDecimal", "latDecimal"), crs=4326)
+meteoblue_sf <- st_transform(meteoblue_sf, crs = crs_lv95)
+```
+
+```{r}
+# create union of all station points and set city extent
+pts_union <- st_union(st_geometry(meteoblue_sf))
+envelope_zurich <- st_as_sfc(st_bbox(stadtgrenze))
+```
+
+```{r}
+#create voronoi tesselation and extract polygons out of it, with support of Chatgpt
+voronoi_meteoblue <- st_voronoi(pts_union, envelope=envelope_zurich)
+
+voronoi_polygons <- st_collection_extract(
+  voronoi_meteoblue,
+  "POLYGON"
+)
+# convert to sf object
+voronoi_sf <- st_sf(
+  geometry = st_cast(voronoi_polygons, "POLYGON")
+)
+```
+
+```{r}
+# assign station attributes to polygons, with support of chatgpt
+voronoi_sf$locationID <- meteoblue_sf$locationID
+
+# clip to Zurich city boundary
+voronoi_clipped_meteoblue <- st_intersection(
+  voronoi_sf,
+  stadtgrenze
+)
+```
+
+```{r}
+#join between voronoi_around stations and meteoblue weather data 
+voronoi_weather <- voronoi_clipped_meteoblue |>
+  left_join(
+    meteoblue_weather_data,
+    by = "locationID"
+  )
+```
+
+```{r}
+# visualize, with support of chatgpt
+ggplot() +
+  geom_sf(data = voronoi_clipped_meteoblue, aes(fill = locationID)) +
+  geom_sf(data = stadtgrenze, fill = NA, color = "black") +
+  geom_sf(data = meteoblue_sf, color = "red") +
+  
+  coord_sf(crs = crs_lv95) +
+  
+  scale_fill_viridis_d(option = "turbo") +
+  guides(fill = "none") +
+  
+  labs(
+    title = "Voronoi Polygons around meteoblue Stations in Zurich",
+    fill = "Station",
+    x = "Easting [m]",
+    y = "Northing [m]"
+  ) +
+  
+  theme_minimal() +
+  
+  theme(
+    plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
+    legend.title = element_text(size = 10),
+    legend.text = element_text(size = 8),
+    axis.text = element_blank(),
+    axis.title = element_blank()
+  )
+```
+```{r}
+### Assign segments to voronoi-polygons, with support of chatgpt
+
+#only look at point instead of segment
+segment_points <- walking_segments |>
+  st_cast("POINT")
+
+#join with intersect
+segment_points_weather <- st_join(
+  segment_points,
+  voronoi_clipped_meteoblue["locationID"],
+  join = st_intersects
+)
+
+#aggregate back
+meteoblue_segments <- segment_points_weather |>
+  group_by(segment_id, locationID) |>
+  summarise(geometry = st_union(geometry))
+
+#clip to extent of Zurich
+meteoblue_segments_clipped <- st_intersection(
+  meteoblue_segments,
+  stadtgrenze
+)
+```
+
+```{r}
+#visualize Movement Segments with meteoblue weather station polygons
+ggplot() +
+  geom_sf(data = voronoi_clipped_meteoblue, aes(fill = locationID), alpha = 0.3) +
+  geom_sf(data = stadtgrenze, fill = NA, color = "black") +
+  geom_sf(data = meteoblue_segments_clipped, color = "blue", size = 1) +
+  
+  coord_sf(crs = crs_lv95) +
+  
+  scale_fill_viridis_d(option = "turbo") +
+  guides(fill = "none") +
+  
+  labs(
+    title = "Movement Segments with meteoblue weather station polygons",
+    x = "Easting",
+    y = "Northing"
+  ) +
+  
+  theme_minimal()
+```
+
+### temporal join of weather data and walking_segments
+```{r}
+# find most representative time (midtime) of each segment
+segments <- segments |>
+  mutate(
+    mid_time = start_time + (end_time - start_time) / 2
+  )
+```
+
+```{r}
+meteoblue_weather_data <- meteoblue_weather_data |>
+  mutate(timestamp = as.POSIXct(timestamp))
+```
+
+```{r}
+# add spatial information to segments
+segments_spatial <- st_join(
+  segments,
+  meteoblue_segments["locationID"],
+  join = st_intersects
+)
+```
+  
+```{r}
+segments_clean <- segments_spatial |>
+  st_drop_geometry()
+```
+
+```{r}
+segments_weather <- segments_clean |>
+  left_join(meteoblue_weather_data, by = "locationID") |>
+  mutate(
+    time_diff = abs(as.numeric(difftime(mid_time, timestamp, units = "mins")))
+  ) |>
+  group_by(segment_id) |>
+  slice_min(time_diff, n = 1, with_ties = FALSE) |>
+  ungroup()
+```
+```{r}
+segments_weather_clean <- segments_weather |>
+  filter(
+    speed_kmh >= quantile(speed_kmh, 0.02, na.rm = TRUE),
+    speed_kmh <= quantile(speed_kmh, 0.98, na.rm = TRUE)
+  )
+```
+
+```{r}
+ggplot(segments_weather_clean, aes(x = value, y = speed_kmh)) +
+  geom_point(alpha = 0.3) +
+  geom_smooth(method = "lm") +
+  coord_cartesian(ylim = c(0, 10)) +
+  theme_minimal() +
+  labs(
+    x = "Temperature (°C)",
+    y = "Speed (km/h)"
+  )
+```
+
+```{r}
+trend <- lm(speed_kmh ~ value, data=segments_weather_clean)
+summary(trend)
+```
+```{r}
+summary(trend)$r.squared
+```
+
+
+```{r}
+ggplot(weekend_data, aes(x = value, y = speed_kmh)) +
+  geom_point(alpha = 0.3) +
+  geom_smooth(method = "lm") +
+  coord_cartesian(ylim = c(0, 10)) +
+  theme_minimal() +
+  labs(
+    x = "Temperature (°C)",
+    y = "Speed (km/h)"
+  )
+```
+
+```{r}
+trend <- lm(speed_kmh ~ value, data=weekend_data)
+summary(trend)
+```
+
+
+```{r}
+sum(grepl("<gx:Track>", kml_text))
+sum(grepl("</gx:Track>", kml_text))
+```
+
+
+
 
 # Results
 
