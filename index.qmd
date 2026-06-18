@@ -121,6 +121,8 @@ pacman::p_load(here,
                gstat, # for IDW
                stars, # to create a grid
                purrr,
+               devtools, # for the wordcountaddin to work
+               wordcountaddin, # counts words and characters
                install = TRUE)
 
 ```
@@ -769,11 +771,564 @@ quarter_hourly_hulls_weather_field <- google_timeline_hulls |>
   left_join(quarter_hourly_weather_field, by = "Date")
 ```
 
-## Influence of Weather on Walking
+## Influence of Weather on Walking - ArcGIS Earth trajectories analysis
 
-Travel Mode detection Fokus nur auf on foot --\> calculate speed for each segment
+### Segmentation of trajectories (stops and moves)
 
---\> assign weather information to each segment
+```{r}
+# define function 
+difftime_secs <- function(later, now){
+    as.numeric(difftime(later, now, units = "secs"))
+}
+```
+
+```{r}
+#define two timestamps for function using lead
+later <- lead(tracks_lv95$timestamp)
+now <- tracks_lv95$timestamp
+
+tracks_lv95$timelag <- difftime_secs(later, now)
+```
+
+```{r}
+# sort after timestamp
+tracks_lv95 <- tracks_lv95 |>
+  arrange(timestamp)
+```
+
+```{r}
+# compute distance and time difference
+tracks_lv95 <- tracks_lv95 |>
+  mutate(
+    step_dist = as.numeric(st_distance(geometry, lead(geometry), by_element = TRUE)),
+    step_time = as.numeric(difftime(lead(timestamp), timestamp, units = "secs"))
+  )
+```
+
+```{r}
+# define threshold of moving window, movement if distance of 1 step more than 5 meters in a time of less than 30 seconds, based on literature?
+tracks_lv95 <- tracks_lv95 |>
+  mutate(
+    moving_step = step_dist > 5 & step_time < 30
+  )
+```
+
+```{r}
+# assign new segment_id each time transition from stop to move or vice versa
+# to connect the still separate points into segments, with support of Chatgpt
+tracks_lv95 <- tracks_lv95 |>
+  mutate(
+    change = moving_step != lag(moving_step, default = first(moving_step)),
+    segment_id = cumsum(change)
+  )
+```
+
+```{r}
+# calculate for each segment starting time, end time, duration, geometry, speed
+segments <- tracks_lv95 |>
+  group_by(segment_id, moving_step) |>
+  summarise(
+    start_time = first(timestamp),
+    end_time = last(timestamp),
+
+    duration = as.numeric(
+      difftime(last(timestamp), first(timestamp), units = "secs")
+    ),
+
+    distance = sum(step_dist, na.rm = TRUE),
+
+    speed = ifelse(duration > 0, distance / duration, NA_real_),
+
+    speed_kmh = speed * 3.6,
+
+    n_points = n(),
+    geometry = st_union(geometry),
+    .groups = "drop"
+  )
+```
+
+```{r}
+# classify segments to Movement or not (Stop)
+segments <- segments |>
+  mutate(type = ifelse(moving_step, "MOVE", "STOP"))
+```
+
+```{r}
+# visualize stops and moves together with city boundary
+ggplot() +
+  geom_sf(data = stadtgrenze,
+          fill = "#D5F4FF",
+          color = "black") +
+  geom_sf(data = segments,
+          aes(color = type),
+          size = 2) +
+  scale_color_manual(
+    values = c("STOP" = "blue", "MOVE" = "red")
+  ) +
+  coord_sf(crs = crs_lv95) +
+  theme_minimal()
+```
+
+```{r}
+# distribution of speed to cut boundaries
+quantile(segments$speed_kmh[segments$moving_step],
+         probs=c(0.5,0.9,0.95, 0.98),
+         na.rm = TRUE)
+```
+
+```{r}
+# trim upper tail, with support of ChatGPT
+upper <- quantile(segments$speed_kmh, 0.975, na.rm = TRUE)
+
+segments_trim <- segments |>
+  filter(speed_kmh <= upper)
+```
+
+```{r}
+# boxplot for distribution
+boxplot(
+  segments_trim$speed_kmh,
+  main = "Speed (km/h) – trimmed 2.5% tails",
+  ylab = "Speed (km/h)",
+  col = "lightgreen"
+)
+```
+
+### Travel Mode detection (focus on walking)
+take values from literature?
+```{r}
+# create only walking segments (speed between 1 and 7 km/h)
+walking_segments <- segments |> 
+  filter(segments$speed_kmh < 7 & segments$speed_kmh > 1 )
+```
+
+### Construct Voronoi Polygons around meteoblue measuring Stations
+
+```{r}
+# create geometry out of coords for meteoblue_stations
+meteoblue_sf <- meteoblue_stations |> 
+  st_as_sf(coords=c("lonDecimal", "latDecimal"), crs = crs_wgs84)
+
+meteoblue_sf <- st_transform(meteoblue_sf, crs = crs_lv95)
+```
+
+```{r}
+# create union of all station points and set city extent
+pts_union <- st_union(st_geometry(meteoblue_sf))
+
+envelope_zurich <- st_as_sfc(st_bbox(stadtgrenze))
+```
+
+```{r}
+# create voronoi tesselation and extract polygons out of it, with support of ChatGPT
+voronoi_meteoblue <- st_voronoi(pts_union, envelope=envelope_zurich)
+
+voronoi_polygons <- st_collection_extract(
+  voronoi_meteoblue,
+  "POLYGON"
+)
+# convert to sf object
+voronoi_sf <- st_sf(
+  geometry = st_cast(voronoi_polygons, "POLYGON")
+)
+```
+
+```{r}
+# assign station attributes to polygons
+voronoi_sf$locationID <- meteoblue_sf$locationID
+
+# clip to Zurich city boundary
+voronoi_clipped_meteoblue <- st_intersection(
+  voronoi_sf,
+  stadtgrenze
+)
+```
+
+```{r}
+# join between voronoi stations and meteoblue weather data 
+voronoi_weather <- voronoi_clipped_meteoblue |>
+  left_join(
+    meteoblue_weather_data,
+    by = "locationID"
+  )
+```
+
+```{r}
+# visualisation
+ggplot() +
+  geom_sf(data = voronoi_clipped_meteoblue, aes(fill = locationID)) +
+  geom_sf(data = stadtgrenze, fill = NA, color = "black") +
+  geom_sf(data = meteoblue_sf, color = "red") +
+  
+  coord_sf(crs = crs_lv95) +
+  
+  scale_fill_viridis_d(option = "turbo") +
+  guides(fill = "none") +
+  
+  labs(
+    title = "Voronoi Polygons around meteoblue Stations in Zurich",
+    fill = "Station",
+    x = "Easting [m]",
+    y = "Northing [m]"
+  ) +
+  
+  theme_minimal() +
+  
+  theme(
+    plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
+    legend.title = element_text(size = 10),
+    legend.text = element_text(size = 8),
+    axis.text = element_blank(),
+    axis.title = element_blank()
+  )
+```
+
+### Assign segments to Voronoi Polygons
+
+```{r}
+# only look at point instead of segment
+segment_points <- walking_segments |>
+  st_cast("POINT")
+
+# join with intersect
+segment_points_weather <- st_join(
+  segment_points,
+  voronoi_clipped_meteoblue["locationID"],
+  join = st_intersects
+)
+
+# aggregate back
+meteoblue_segments <- segment_points_weather |>
+  group_by(segment_id, locationID) |>
+  summarise(geometry = st_union(geometry))
+
+# clip to extent of Zurich
+meteoblue_segments_clipped <- st_intersection(
+  meteoblue_segments,
+  stadtgrenze
+)
+```
+
+```{r}
+# visualize Movement Segments with meteoblue weather station polygons
+ggplot() +
+  geom_sf(data = voronoi_clipped_meteoblue, aes(fill = locationID), alpha = 0.3) +
+  geom_sf(data = stadtgrenze, fill = NA, color = "black") +
+  geom_sf(data = meteoblue_segments_clipped, color = "blue", size = 1) +
+  
+  coord_sf(crs = crs_lv95) +
+  
+  scale_fill_viridis_d(option = "turbo") +
+  guides(fill = "none") +
+  
+  labs(
+    title = "Movement Segments with meteoblue weather station polygons",
+    x = "Easting",
+    y = "Northing"
+  ) +
+  
+  theme_minimal()
+```
+
+### Temporal Join of Weather Data and Walking Segments
+threshold from literature?
+```{r}
+# find most representative time (midtime) of each segment
+segments <- segments |>
+  mutate(
+    mid_time = start_time + (end_time - start_time) / 2
+  )
+```
+
+```{r}
+# set as posix datetime object
+meteoblue_weather_data <- meteoblue_weather_data |>
+  mutate(timestamp = as.POSIXct(timestamp))
+```
+
+```{r}
+# add spatial information to segments
+segments_spatial <- st_join(
+  segments,
+  meteoblue_segments["locationID"],
+  join = st_intersects
+)
+```
+
+```{r}
+# clean
+segments_clean <- segments_spatial |>
+  st_drop_geometry()
+```
+
+```{r}
+segments_weather <- segments_clean |>
+  left_join(meteoblue_weather_data, by = "locationID") |>
+  mutate(
+    time_diff = abs(as.numeric(difftime(mid_time, timestamp, units = "mins")))
+  ) |>
+  group_by(segment_id) |>
+  slice_min(time_diff, n = 1, with_ties = FALSE) |>
+  ungroup()
+```
+
+```{r}
+# filter unrealistic values
+segments_weather_clean <- segments_weather |>
+  filter(time_diff <= 120) |>
+  filter(
+    speed_kmh >= quantile(speed_kmh, 0.02, na.rm = TRUE),
+    speed_kmh <= quantile(speed_kmh, 0.98, na.rm = TRUE)
+  )
+```
+
+```{r}
+# check if temporal join worked
+summary(segments_weather_clean$time_diff)
+```
+
+```{r}
+# visualize
+ggplot(segments_weather_clean, aes(x = value, y = speed_kmh)) +
+  geom_point(alpha = 0.3) +
+  geom_smooth(method = "lm") +
+  coord_cartesian(ylim = c(0, 10)) +
+  theme_minimal() +
+  labs(
+    x = "Temperature (°C)",
+    y = "Speed (km/h)"
+  )
+```
+
+```{r}
+# trend analysis
+trend <- lm(speed_kmh ~ value, data=segments_weather_clean)
+summary(trend)
+```
+
+```{r}
+# classification of different temperature groups
+segments_weather_clean <- segments_weather_clean |>
+  mutate(
+    temp_group = cut(value,
+                     breaks = quantile(value, probs = seq(0, 1, 0.25), na.rm = TRUE),
+                     include.lowest = TRUE)
+  )
+
+lm(speed_kmh ~ temp_group, data = segments_weather_clean)
+```
+
+```{r}
+# test if difference between temp_groups is significant
+anova(lm(speed_kmh ~ temp_group, data = segments_weather_clean))
+```
+
+```{r}
+# label bins
+segments_weather_clean <- segments_weather_clean |>
+  mutate(temp_group = factor(temp_group,
+                             levels = levels(temp_group),
+                             labels = c("Cold (1-4°C)", "Cool (4-9°C)", "Mild (9-13°C)", "Warm (13-26°C)")))
+```
+
+```{r}
+# remove NA values
+segments_weather_clean <- segments_weather_clean |>
+  filter(!is.na(temp_group))
+```
+
+```{r}
+# visualize
+ggplot(segments_weather_clean, aes(x = temp_group, y = speed_kmh)) +
+  geom_boxplot(fill = "lightblue") +
+  geom_jitter(width = 0.2, alpha = 0.3) +
+  theme_minimal() +
+  labs(
+    x = "Temperature group",
+    y = "Walking speed (km/h)"
+  )
+```
+
+## Analyze effect of Precipitation
+
+```{r}
+# clean weather_hourly_df
+rain_hourly_df <- weather_hourly_df |>
+  filter(Parameter == "RainDur")
+```
+
+```{r}
+# determine representative time for segment
+walking_segments <- walking_segments |>
+  mutate(
+    mid_time = start_time + (end_time - start_time) / 2
+  )
+```
+
+### A) City-level Analysis
+
+```{r}
+# timestamp set as datetime object
+rain_city_hourly <- weather_hourly_df |>
+  filter(Parameter == "RainDur") |>
+  mutate(timestamp = as.POSIXct(Datum, tz = "Europe/Zurich")) |>
+  group_by(timestamp) |>
+  summarise(rain = mean(Wert, na.rm = TRUE), .groups = "drop")
+```
+
+```{r}
+# temporal join, merge all segments with all weather data and keep closest
+analysis_city <- walking_segments |>
+  st_drop_geometry() |>
+  mutate(mid_time = as.POSIXct(mid_time, tz = "Europe/Zurich")) |>
+  crossing(rain_city_hourly) |>
+  mutate(time_diff = abs(as.numeric(difftime(mid_time, timestamp, units = "mins")))) |>
+  group_by(segment_id) |>
+  slice_min(time_diff, n = 1) |>
+  ungroup() |>
+  filter(!is.na(rain))
+```
+
+```{r}
+# visualize
+ggplot(analysis_city, aes(rain, speed_kmh)) +
+  geom_point(alpha = 0.3) +
+  geom_smooth(method = "lm") +
+  theme_minimal() +
+  labs(
+    x = "Rain (city average)",
+    y = "Walking speed (km/h)",
+    title = "City-level rain vs walking speed"
+  )
+```
+
+### B) Station-level Analysis
+
+```{r}
+# join segment with nearest station first
+segments_station <- st_join(
+  walking_segments,
+  voronoi_clipped["ID"],
+  join = st_nearest_feature
+)
+```
+
+```{r}
+segments_weather_rain <- segments_station |>
+  st_drop_geometry() |>
+  left_join(
+    rain_hourly_df,
+    by = c("ID" = "Standort")
+  ) |>
+  mutate(
+    timestamp = as.POSIXct(Datum, tz = "Europe/Zurich"),
+    time_diff = abs(as.numeric(
+      difftime(mid_time, timestamp, units = "mins")
+    ))
+  ) |>
+  group_by(segment_id) |>
+  slice_min(time_diff, n = 1, with_ties = FALSE) |>
+  ungroup()
+```
+
+```{r}
+# temporal join, with segment merging with rain weather data
+analysis_station <- segments_station |>
+  st_drop_geometry() |>
+  left_join(rain_hourly_df, by = c("ID" = "Standort")) |>
+  mutate(time_diff = abs(as.numeric(difftime(mid_time, as.POSIXct(Datum), units = "mins")))) |>
+  group_by(segment_id) |>
+  slice_min(time_diff, n = 1) |>
+  ungroup() |>
+  filter(!is.na(Wert))
+```
+
+```{r}
+# visualize
+ggplot(analysis_station, aes(Wert, speed_kmh)) +
+  geom_point(alpha = 0.3) +
+  geom_smooth(method = "lm") +
+  theme_minimal() +
+  labs(
+    x = "Rainfall duration [min]",
+    y = "Walking speed [km/h]",
+    title = "Rainfall duration vs walking speed, station-level analysis"
+  )
+```
+
+```{r}
+# define rain vs. no rain
+segments_weather_rain <- segments_weather_rain |>
+  mutate(
+    rain_flag = ifelse(Wert > 0, "rain", "no_rain")
+  )
+```
+
+```{r}
+# two stations have all NA-values=> no rainfall data collection?
+segments_weather_rain |>
+  filter(is.na(Wert)) |>
+  count(ID)
+```
+
+```{r}
+analysis_data <- analysis_station |>
+  mutate(rain_flag = ifelse(Wert > 0, "rain", "no_rain"))
+```
+
+```{r}
+# group if rain or not and analyze speed respectively
+analysis_data |>
+  group_by(rain_flag) |>
+  summarise(
+    mean_speed = mean(speed_kmh, na.rm = TRUE),
+    median_speed = median(speed_kmh, na.rm = TRUE),
+    sd_speed = sd(speed_kmh, na.rm = TRUE),
+    n = n()
+  )
+```
+
+```{r}
+# test if significant relationship
+wilcox.test(speed_kmh ~ rain_flag, data = analysis_data)
+```
+
+```{r}
+# see if relationship
+lm(speed_kmh ~ Wert, data = analysis_data)
+```
+
+```{r}
+# visualize all values (including 0)
+
+ggplot(analysis_data, aes(Wert, speed_kmh)) +
+  geom_point(alpha = 0.3) +
+  geom_smooth(method = "lm") +
+  theme_minimal() +
+  labs(
+    x = "Rainfall duration (city average) [min]",
+    y = "Walking speed [km/h]",
+    title="Rainfall duration vs. walking speed, city-level analysis "
+  )
+```
+
+```{r}
+# visualize, but only values where there actually is rain (>0)
+ggplot(analysis_data, aes(Wert, speed_kmh)) +
+  geom_jitter(alpha = 0.2, height = 0) +
+  geom_smooth(
+    data = filter(analysis_data, Wert > 0),
+    method = "lm",
+    color = "blue"
+  ) +
+  labs(
+    x = "Rainfall duration",
+    y = "Walking speed (km/h)",
+    title = "Walking speed vs. rainfall",
+    subtitle = "Regression line fitted only for observations with rainfall > 0"
+  ) +
+  theme_minimal()
+```
 
 # Results
 
@@ -781,11 +1336,11 @@ Travel Mode detection Fokus nur auf on foot --\> calculate speed for each segmen
 -   How well are the results presented?
 -   How well are the results discussed in the light of the theory?
 
-## Statistical Analysis Movement Space vs Weather
+## Statistical Analysis Movement Space vs. Weather
 
 Earlier we assigned 
 
-### Daily - Voronoi Polygon
+### A) Daily - Voronoi Polygon
 
 ```{r}
 # visualise the variable Temperature
@@ -834,7 +1389,7 @@ There is a suggestive positive trend with Temperature, but we cannot confidently
 
 The low R\^2 (0.21) and adjusted R\^2 (0.15) suggests other factors (e.g. day of week, work/leisure day, season) that influence activity space more than weather.
 
-### Daily - Field
+### B) Daily - Field
 
 ```{r}
 # visualise the variable Temperature
@@ -873,7 +1428,7 @@ summary(lm2)
 The P-value of the RainDur is slightly lower than from lm1, indicating that the interpolation of precipitation duration is a more appropriate way of identifiying a relationship between weather and movement.\
 Furthermore, the R\^2 and Adjusted R\^2 values are slightly higher, meaning that our interpolated model explains a bit more of the values than the model with the Voronoi polygons.
 
-### Hourly - Field
+### C) Hourly - Field
 ```{r}
 # visualise the variable Temperature
 ggplot(hourly_hulls_weather_field, aes(x = Temperature, y = log(area_m2))) +
@@ -912,7 +1467,7 @@ We see a significant negative effect of RainDur on the movement area. The whole 
 
 If we have a look at for example the 24.03.2026 we can see the differences between aggregated daily and hourly weather data. The daily one says that on that date it was 8.1°C with a RainDur of 187 min, which is quite a lot. The hourly one says that it was 10.7°C with no rain. This means that while over the whole day, it rained quite a lot, we only moved while it was not raining and slightly warmer, effectively being a great example for our research questions.
 
-### 15 min - Field
+### D) 15 min - Field
 ```{r}
 # visualise the variable Temperature
 ggplot(quarter_hourly_hulls_weather_field, aes(x = Temperature, y = log(area_m2))) +
@@ -935,7 +1490,7 @@ lm4 <- lm(log(area_m2) ~ Temperature, data = quarter_hourly_hulls_weather_field)
 summary(lm4)
 ```
 
-
+## Statistical Analysis - Influence of Weather on Walking
 
 
 # Discussion
@@ -962,8 +1517,8 @@ Other influencing factors:
 
 Data Quality: 
 -   the Google timeline data only records stops --> we could have switched to SDE to also model our movement in between those fixes. 
-  -   aspace::calc_sde (https://www.rdocumentation.org/packages/aspace/versions/4.1.1/topics/calc_sde)
-  -   sfdep::std_dev_ellipse (https://cran.rstudio.com/web/packages/sfdep/sfdep.pdf)
+-   aspace::calc_sde (https://www.rdocumentation.org/packages/aspace/versions/4.1.1/topics/calc_sde)
+-   sfdep::std_dev_ellipse (https://cran.rstudio.com/web/packages/sfdep/sfdep.pdf)
   
 
 
@@ -976,4 +1531,5 @@ Data Quality:
 ```{r}
 #| eval: false
 wordcountaddin::word_count("index.qmd")
+wordcountaddin::text_stats("index.qmd")
 ```
