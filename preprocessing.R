@@ -51,7 +51,9 @@ if (str_detect(url2, ".csv")) {
   print("File format not recognised!")
 }
 
-# filter weather_daily_df to our timeframe --> tbd
+# filter weather_daily_df to our timeframe --> tbd 13.3 to 20.5
+
+
 
 # import weather station information from the metadata JSON file provided by the city of Zurich
 weather_stations <- fromJSON("data/weather_stations_metadata.json")
@@ -134,3 +136,78 @@ google_timeline_sf <- st_as_sf(google_timeline_df, coords = c("lon", "lat"), crs
 
 # convert to local CRS
 google_timeline_sf_lv95 <- st_transform(google_timeline_sf, crs = crs_lv95)
+
+
+
+# import arcgisPro trajectories
+files <- list.files(
+  "data/ArcGISEarth_Tracks",
+  pattern = "\\.kmz$",
+  full.names = TRUE
+)
+
+
+
+## read each trajectory including exact time
+
+read_kmz_track <- function(f) {
+  
+  td <- tempfile()
+  dir.create(td)
+  
+  unzip(f, exdir = td)
+  
+  kml <- file.path(td, "doc.kml")
+  
+  if (!file.exists(kml)) {
+    unlink(td, recursive = TRUE)
+    stop("No doc.kml in: ", f)
+  }
+  
+  kml_text <- readLines(kml, warn = FALSE)
+  
+  when_vec <- stringr::str_extract(
+    grep("<when>", kml_text, value = TRUE),
+    "(?<=<when>).*?(?=</when>)"
+  )
+  
+  coord_vec <- stringr::str_extract(
+    grep("<gx:coord>", kml_text, value = TRUE),
+    "(?<=<gx:coord>).*?(?=</gx:coord>)"
+  )
+  
+  track_df <- tibble(
+    timestamp = when_vec,
+    coord = coord_vec
+  ) |>
+    tidyr::separate(
+      coord,
+      into = c("lon", "lat", "altitude"),
+      sep = " "
+    ) |>
+    mutate(
+      lon = as.numeric(lon),
+      lat = as.numeric(lat),
+      altitude = as.numeric(altitude),
+      timestamp = lubridate::ymd_hms(timestamp, tz = "UTC"),
+      source_file = basename(f)
+    )
+  
+  track_sf <- st_as_sf(
+    track_df,
+    coords = c("lon", "lat"),
+    crs = 4326
+  )
+  
+  unlink(td, recursive = TRUE)
+  
+  track_sf
+}
+
+tracks_list <- map(files, read_kmz_track)
+
+tracks <- list_rbind(tracks_list)
+
+tracks_lv95 <- st_transform(tracks, crs_lv95)
+
+
