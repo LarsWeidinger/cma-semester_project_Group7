@@ -942,6 +942,32 @@ ggplot(analysis_city, aes(rain, speed_kmh)) +
   )
 ```
 
+
+
+
+# New part 1
+
+```{r}
+segments_weather_rain <- segments_station |>
+  st_drop_geometry() |>
+  left_join(
+    rain_hourly_df,
+    by = c("ID" = "Standort")
+  ) |>
+  mutate(
+    timestamp = as.POSIXct(Datum, tz = "Europe/Zurich"),
+    time_diff = abs(as.numeric(
+      difftime(mid_time, timestamp, units = "mins")
+    ))
+  ) |>
+  group_by(segment_id) |>
+  slice_min(time_diff, n = 1, with_ties = FALSE) |>
+  ungroup()
+```
+
+
+
+
 ### 3. B) station-level analysis
 
 ```{r}
@@ -986,6 +1012,19 @@ segments_weather_rain <- segments_weather_rain |>
   )
 ```
 
+
+
+
+# New part 2
+```{r}
+analysis_data <- analysis_station |>
+  mutate(rain_flag = ifelse(Wert > 0, "rain", "no_rain"))
+```
+
+
+
+
+
 ```{r}
 # two stations have all NA-values=> no rainfall data collection?
 segments_weather_rain |>
@@ -1012,13 +1051,13 @@ wilcox.test(speed_kmh ~ rain_flag, data = analysis_data)
 
 ```{r}
 # see if relationship
-lm(speed_kmh ~ rain, data = analysis_data)
+lm(speed_kmh ~ Wert, data = analysis_data)
 ```
 
 ```{r}
 # Visualize all values (including 0)
 
-ggplot(analysis_data, aes(rain, speed_kmh)) +
+ggplot(analysis_data, aes(Wert, speed_kmh)) +
   geom_point(alpha = 0.3) +
   geom_smooth(method = "lm") +
   theme_minimal() +
@@ -1031,10 +1070,10 @@ ggplot(analysis_data, aes(rain, speed_kmh)) +
 
 ```{r}
 # visualize, but only values where there actually is rain (>0)
-ggplot(analysis_data, aes(rain, speed_kmh)) +
+ggplot(analysis_data, aes(Wert, speed_kmh)) +
   geom_jitter(alpha = 0.2, height = 0) +
   geom_smooth(
-    data = filter(analysis_data, rain > 0),
+    data = filter(analysis_data, Wert > 0),
     method = "lm",
     color = "blue"
   ) +
@@ -1046,6 +1085,8 @@ ggplot(analysis_data, aes(rain, speed_kmh)) +
   ) +
   theme_minimal()
 ```
+
+
 
 ```{r}
 sum(grepl("<gx:Track>", kml_text))
