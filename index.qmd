@@ -56,10 +56,72 @@ Alternative Datensätze: Tageslicht? Stürme?
 Ran Nathan's Movement Ecology Paradigm: wo befinden wir usn mit diesem Project, ist evtl. v.a. bei der Discussion relevant
 
 # Abstract
+Javier
+tbd
 
 # Introduction
 
-@laube2011 investigate how temporal scale affects the calculation of movement parameters (speed, sinuosity and turning angle) of animal trajectories.
+Since the dawn of human evolution, humans have walked across the surface of the earth. To this day, it is the most essential mode of transport since almost all trips include some part of moving on foot (@giannoulaki2024). Therefore it is no wonder that pedestrian movement has been studied in depth and the results are used to create appealing and efficient walking infrastructure that also shield these vulnerable people against other, potentially dangerous transport modes. 
+
+
+@laube2011 investigate how temporal scale affects the calculation of movement parameters (speed, sinuosity and turning angle) of animal trajectories. Also done by @zhao2019 and us.
+
+
+@montigny2012 
+Weather has important direct effects on the physical environment
+northern hemisphere, low temperatures and precipitation are generally associated with poor physical conditions for walking
+
+other influencing factors: air temperature, wind speed, and a sky-clearness index, solar-radiation, humidity
+
+air temperature has a singificant effect on routing when it is warm (23°C or more) --> shade seeking
+
+"All trips have associated imperatives, which make them more or less likely to change in adverse weather conditions" --> trip purpose might have a very strong influence --> look at weekdays and weekends separately
+
+largely related to air temperature and precipitation, given that most walking activity is driven by daily routine and imperatives (=trip purpose)
+
+precipitation had by far the largest effect on walking levels with sunlight and temperature also playing a role.
+
+negative interaction between sunlit area and temperature is interesting. It suggests that the positive effect of temperature on walking is diminished when it is sunny and vice versa
+
+@rotton1990
+individuals walk faster on cold than on temperate days
+
+city size might also influence tempo --> some cultures walk faster in large cities than in smaller ones
+high level of density --> faster
+women walk faster in noisy and densly populated settings  
+
+--> heat is arousing
+
+"individuals walk faster in cool settings and on moderately cold days, they do not walk slower at comofrtably higher temperatures"
+"heat causes individuals to walk faster"
+
+@yerkes1908
+The Yerkes–Dodson law is principle founded in psychology that states that performance improves with mental arousal, up to an optimal point. Below that point, moderate arousal when conducting simple tasks (e.g. walking) leads to better performance (e.g. walking faster).  However, it is a U-shaped curve, when arousal is too high --> drop in performance because it is stress
+
+@obuchi2021
+walking speed is typically faster in urban areas than in rural areas
+walking speed is faster in winter than in summer --> wanting to reach the destination earlier
+walking speed is faster in cities with cooler temperatures than in warmer cities
+walking could act as a heat production mechanism in humans under low or moderate temperature conditions.
+
+@giannoulaki2024
+Pedestrian speed depends on pedestrian flow characteristics (e.g. density), pedestrian attributes (e.g. age, gender), layout configuration (e.g. inclination), ambient conditions (e.g. weather, noise) and pedestrian behavioral patterns (e.g. using a phone).
+
+lower lighting levels led to a decrease in walking speed --> sunlight, time of day
+
+Weather conditions may have negative effects on pavement condition (ice, snow, etc.) and result in more carefully walking behavior and, hence, lower walking speed rates
+
+BUT also higher speeds for pedestrians under adverse weather in order to reach the destination quickly and protect themselves
+
+@zhao2019
+active travel as a mode choice is more likely to be influenced by adverse weather conditions
+Precipitation reduced the average hourly pedestrian volumes by approximately 13%
+Precipitation and season affected the pedestrian levels, even when the time of day and the day of week were controlled
+rainfall 3 h earlier, suggesting a delay effect of rainfall on cycling
+weather impact accounted for a larger percentage of the variation in active travel on weekdays than on weekends.
+suggest that when it rains, its negative impact not only continues, but it could also be “anticipated” by active travelers.
+
+
 
 1.  Study design\
     • Research questions are clear, appropriate, realistic, addressable\
@@ -71,9 +133,13 @@ Ran Nathan's Movement Ecology Paradigm: wo befinden wir usn mit diesem Project, 
     • Students show understanding of theory\
     • What has been done in terms of literature review?
 
+
 # Material and Methods
 
-• How was research implemented addressing the Research questions? • What about problems and limitations and strategies overcoming these? • Simple solutions vs. own original techniques • Is the code properly commented/annotated?
+-   How was research implemented addressing the Research questions? 
+-   What about problems and limitations and strategies overcoming these? 
+-   Simple solutions vs. own original techniques 
+-   Is the code properly commented/annotated?
 
 ## Load Packages
 
