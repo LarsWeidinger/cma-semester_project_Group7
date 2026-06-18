@@ -24,11 +24,6 @@ lang: en
 bibliography: bibliography.bib
 ---
 
-```{r preprocessing}
-#| code-summary: preprocessing
-source("preprocessing.R") # this runs the whole preprocessing file
-```
-
 # Notes from Project Proposal Call
 
 Meteo Daten Stunde vs. Tag --\> ausprobieren
@@ -74,11 +69,14 @@ Precipitation is one of the strongest determinants of pedestrian activity. Studi
 @rotton1990 found that head causes individuals to walk faster. This influence of temperature on walking speed can also be explained through the Yerkes–Dodson law, where moderate arousal can improve performance, while excessive stress reduces it (U-shaped curve) (@yerkes1908). Warmer temperatures may therefore increase walking speed up to a point, but extreme temperatures can negatively affect speed. Since precipitation and temperature are two of the most influential and measurable weather factors affecting both walking activity and movement characteristics, this project focuses on their impact on pedestrian mobility patterns and walking behaviour.
 
 More precisely, we decided on the following Research Questions (RQ):  
-I) How do temperature and precipitation affect daily travel distance, speed and sinuousity?  
-II) Does travel speed increase with more precipitation?  
+I) How does temperature affect daily travel distance, speed and sinuousity?  
+II) How does precipitation affect daily travel distance, speed and sinuousity?  
 III) How do temperature and precipitation affect the spatial extent of activity spaces?  
 IV) Do different temporal scales of the weather data matter?  
 
+To answer these questions we tracked ourselves with two different tracking tools. We used ArcGIS Earth, which saves a GPS fix every few seconds, independent of if you are moving or stopping, and saves it to a KML file to answer RQ I and II. We also used Google timeline, which mostly only measures your stop locations and saves it to a JSON file to answer RQ III and IV. 
+
+We let the Google timeline run in the background of our smartphone from 08.03.2026 until 26.04.2026. Since we had to manually start and stop the ArcGIS Earth tracking, we only generated 42 tracks of different length between 13.03.2026 and 25.04.2026. 
 
 
 1.  Study design\
@@ -134,7 +132,12 @@ crs_lv95  <- 2056
 crs_wgs84 <- 4326
 ```
 
-## Import Data
+## Import & Preprocess Data
+
+```{r preprocessing}
+#| code-summary: preprocessing
+source("preprocessing.R") # this runs the whole preprocessing file
+```
 
 See the preprocessing.R file where we import:  
 
@@ -147,6 +150,8 @@ See the preprocessing.R file where we import:
 -   city boundary data (stadtgrenze)
 
 ## Weather Data Daily (Voronoi Polygon)
+
+For our weather data we used a dataset by the city of Zurich that provides aggregated weather data (temperature [°C] and rain duration [min]) per day. The dataset is updated every day and we import the whole year and later only use the information that corresponds to our tracking data. 
 
 ### Locating Weather Stations
 
@@ -178,7 +183,7 @@ ggplot() +
 
 ### Constrcut Voronoi Polygons around Measuring Stations
 
-Since we need to assign weather data to our stops and later our segments we need to relate the two datasets spatially. For that, we construct Voronoi polygons around the measuring stations. Later we can then assign each Google timeline fix the weather values from the station it is closest to (= inside the Voronoi polygon).
+Since we need to assign the weather data to our GPS fixes and later our segments we need to relate the two datasets spatially. For that, we construct Voronoi polygons around the measuring stations. Later we can then assign each Google timeline fix the weather values from the station it is closest to (= inside the Voronoi polygon). This method is rather simple but very effective.
 
 ```{r}
 # both datasets are in CH1903+
@@ -231,7 +236,7 @@ ggplot() +
 
 ### Assign Google Timeline Data to Voronoi Polygons
 
-We can now use a spatial join to assign the corresponding weather station to each of the Google timeline fixes.\
+We can now use a spatial join to assign the corresponding weather station to each of the Google timeline fixes. \
 Since we traveled quite a lot outside of the city of Zurich, we omit the data outside the city (NA values), which is approximately 60% of the data points.
 
 ```{r}
@@ -345,11 +350,9 @@ ggplot() +
 
 To answer RQ II we need to construct some sort of measurement for activity space. We decided on constructing concave hulls around the trips for each day. We then can calculate the area of these hulls, take the average weather values across the whole hull and analyse if the area is larger when temperature is higher or rain duration is lower.
 
-We decided to use concave hulls rather than convex hulls since they are less prone to outliers. Even though there are some convex hull implementations that allow for some sort of variable to be manipulated in order to exclude outliers (e.g. adehabitatHR::mcp()), the concave hull is more suited for our use case. We could have also used Alpha shapes (alphahull::) which accounts for holes in our data but this is not needed since we are dealing with continuous travel data.
+We decided to use concave hulls rather than convex hulls since they are less prone to outliers. Even though there are some convex hull implementations that allow for some sort of variable to be manipulated in order to exclude outliers (e.g. adehabitatHR::mcp()), the concave hull is more suited for our use case. We could have also used Alpha shapes (alphahull::) which accounts for holes in our data but this is not needed since we are dealing with continuous travel data (@weibel2024). 
 
-QUELLE: GEO 872, 3. Vlsg 02.10.2024 Point Patterns - Polygon Delineation
-
-Alternative: Standard devitational ellipse (SDE): forms a closed shape that represents distributional properties of the point set but does not enclose all points.
+As an alternative, we could have used the Standard Devitational Ellipse (SDE), which forms a closed shape that while representing distributional properties of the point set it does not enclose all points. This would have been potentially more fitting, since the Google timeline data does not capture the movement between fixes, therefore single fixes could distort the concave hulls. 
 
 ### Construct Concave Hulls
 
@@ -467,9 +470,7 @@ ggplot() +
 We only have weather measurements at at a handful of stations across the city. Assigning each location fix the weather data of the Voronoi polygon of the station it is in, is simplistic. Weather changes somewhat gradually across space, a more "fluid" approach would be better. That is why we decided on using Inverse Distance Weighting (IDW), which is a simple approach to generate gradually changing values across space using some sort of tessellation.\
 With only few stations the interpolation accuracy will be low. We are not capturing real microclimate variation like urban heat island effects or cooling green spaces and water bodies. But since we plan on repeating our method with the finer scaled Meteoblue stations, we decided on applying the IDW method.
 
-Since we do not want to compute a full raster per day we will do a point-wise IDW prediction directly at each location fix's coordinates, using all weather station information.
-
-A raster per timestamp needs a lot of computation time and we only need the value at the fix's exact coordinates. Point-wise IDW is just a weighted average of all the distance, which takes much less time and we avoid avoid managing hundreds of rasters.
+Since we do not want to compute a full raster for every day we will do a point-wise IDW prediction directly at each location fix's coordinates, using all weather station information. A raster per timestamp needs a lot of computation time and we only need the value at the fix's exact coordinates. Point-wise IDW is just a weighted average of all the distance, which takes much less time and we avoid avoid having to manage hundreds of rasters.
 
 ### Inverse Distance Weighting (IDW)
 
@@ -560,8 +561,8 @@ daily_hulls_weather_field <- google_timeline_hulls |>
 
 ## Weather Hourly (Field)
 
-Now that we have established that weather data is more accurate when using IDW to interpolate values between stations, we will repeat this process with the hourly weather data.\
-The measurements are taken by the same stations as for the daily weather data. Therefore, we only really need to adapt the input data. The concave hulls will stay the same, we will still take all fixes from one day into account.
+We will repeat this IDW process with the hourly weather data.\
+The measurements are taken by the same stations as for the daily weather data. Therefore, we only really need to adapt the input data. The concave hulls will stay the same, we will still take all fixes from one day into account to construct the movement space since our RQ IV asks about the temporal scale of the weather data. 
 
 ### Prepare Weather Data
 
@@ -677,7 +678,8 @@ hourly_hulls_weather_field <- google_timeline_hulls |>
 
 ## Weather 15 min (Field)
 
-Now we want to go one step more into detail using the meteoblue weather data, which takes temperature measurements every 15 minutes at 93 stations across the whole city. It is important to note that meteoblue only measures temperature and not precipitation or rain duration.
+Now we want to go one step more into detail using the meteoblue weather data, which takes temperature measurements every 15 minutes at 93 stations across the whole city. It is important to note that meteoblue only measures temperature and not precipitation or rain duration.  
+Again, we will use the concave hulls per day, since we are interested in the effect of temporal granularity of weather data. 
 
 ### Prepare Weather Data
 
@@ -692,10 +694,10 @@ google_timeline_sf_lv95 <- google_timeline_sf_lv95 |>
 
 ### Inverse Distance Weighting (IDW)
 
-If we would repeat the same code as earlier the runtime would increase significantly. Instead of hourly measurement of four stations we have 15 min measurements of 93 stations.
+If we would repeat the same code as earlier the runtime would increase significantly. Instead of hourly measurement of four stations we have 15 min measurements of 93 stations. That is why we adapted the code slightly. 
 
 ```{r}
-# first we move the station preparation outside the loop --> so it does not get repeated all the time
+# we move the station preparation outside the loop --> so it does not get repeated all the time
 meteoblue_weather_data_join <- meteoblue_weather_data |>
   left_join(
     meteoblue_stations |> 
@@ -773,7 +775,11 @@ quarter_hourly_hulls_weather_field <- google_timeline_hulls |>
 
 ## Influence of Weather on Walking - ArcGIS Earth trajectories analysis
 
+Now we switch from the timeline data to the ArcGIS Earth data, since Google timeline does not allow for precise movement parameter calculations due to the coarse sampling rate. 
+
 ### Segmentation of trajectories (stops and moves)
+
+First we split our trajectories into segments of stops and moves. Since ArcGIS Earth has a very fine sampling rates (seconds) and we sometimes let the tracking run for a whole day, a lot of the fixes are stops and will not be needed for further analysis.  
 
 ```{r}
 # define function 
@@ -783,7 +789,7 @@ difftime_secs <- function(later, now){
 ```
 
 ```{r}
-#define two timestamps for function using lead
+# define two timestamps for function using lead
 later <- lead(tracks_lv95$timestamp)
 now <- tracks_lv95$timestamp
 
@@ -884,6 +890,8 @@ segments_trim <- segments |>
   filter(speed_kmh <= upper)
 ```
 
+In the below boxplot one can see the a majority of the fixes have a speed below 20 km/h, indicating a lot of on foot travel or using public transport. 
+
 ```{r}
 # boxplot for distribution
 boxplot(
@@ -894,18 +902,20 @@ boxplot(
 )
 ```
 
-### Travel Mode detection (focus on walking)
-take values from literature?
+### Travel Mode Detection - Walking
+
+In transportation planning, free flow pedestrian walking speed is assumed to be between 0.8 m/s and 1.5 m/s or 3 to 7 km/h. In our case, slower walking speeds could be possible since the city of Zurich can be rather densly packed and free flow speed might not be achieved. This is why we extended the lower threshold. 
+
 ```{r}
 # create only walking segments (speed between 1 and 7 km/h)
 walking_segments <- segments |> 
   filter(segments$speed_kmh < 7 & segments$speed_kmh > 1 )
 ```
 
-### Construct Voronoi Polygons around meteoblue measuring Stations
+### Construct Voronoi Polygons around meteoblue Measuring Stations
 
 ```{r}
-# create geometry out of coords for meteoblue_stations
+# create geometry out of coordinates for meteoblue_stations
 meteoblue_sf <- meteoblue_stations |> 
   st_as_sf(coords=c("lonDecimal", "latDecimal"), crs = crs_wgs84)
 
@@ -920,7 +930,7 @@ envelope_zurich <- st_as_sfc(st_bbox(stadtgrenze))
 ```
 
 ```{r}
-# create voronoi tesselation and extract polygons out of it, with support of ChatGPT
+# create Voronoi tesselation and extract polygons out of it, with support of ChatGPT
 voronoi_meteoblue <- st_voronoi(pts_union, envelope=envelope_zurich)
 
 voronoi_polygons <- st_collection_extract(
@@ -983,7 +993,7 @@ ggplot() +
   )
 ```
 
-### Assign segments to Voronoi Polygons
+### Assign Segments to Voronoi Polygons
 
 ```{r}
 # only look at point instead of segment
@@ -1087,68 +1097,6 @@ segments_weather_clean <- segments_weather |>
 summary(segments_weather_clean$time_diff)
 ```
 
-```{r}
-# visualize
-ggplot(segments_weather_clean, aes(x = value, y = speed_kmh)) +
-  geom_point(alpha = 0.3) +
-  geom_smooth(method = "lm") +
-  coord_cartesian(ylim = c(0, 10)) +
-  theme_minimal() +
-  labs(
-    x = "Temperature (°C)",
-    y = "Speed (km/h)"
-  )
-```
-
-```{r}
-# trend analysis
-trend <- lm(speed_kmh ~ value, data=segments_weather_clean)
-summary(trend)
-```
-
-```{r}
-# classification of different temperature groups
-segments_weather_clean <- segments_weather_clean |>
-  mutate(
-    temp_group = cut(value,
-                     breaks = quantile(value, probs = seq(0, 1, 0.25), na.rm = TRUE),
-                     include.lowest = TRUE)
-  )
-
-lm(speed_kmh ~ temp_group, data = segments_weather_clean)
-```
-
-```{r}
-# test if difference between temp_groups is significant
-anova(lm(speed_kmh ~ temp_group, data = segments_weather_clean))
-```
-
-```{r}
-# label bins
-segments_weather_clean <- segments_weather_clean |>
-  mutate(temp_group = factor(temp_group,
-                             levels = levels(temp_group),
-                             labels = c("Cold (1-4°C)", "Cool (4-9°C)", "Mild (9-13°C)", "Warm (13-26°C)")))
-```
-
-```{r}
-# remove NA values
-segments_weather_clean <- segments_weather_clean |>
-  filter(!is.na(temp_group))
-```
-
-```{r}
-# visualize
-ggplot(segments_weather_clean, aes(x = temp_group, y = speed_kmh)) +
-  geom_boxplot(fill = "lightblue") +
-  geom_jitter(width = 0.2, alpha = 0.3) +
-  theme_minimal() +
-  labs(
-    x = "Temperature group",
-    y = "Walking speed (km/h)"
-  )
-```
-
 ## Analyze effect of Precipitation
 
 ```{r}
@@ -1166,6 +1114,8 @@ walking_segments <- walking_segments |>
 ```
 
 ### A) City-level Analysis
+
+We decided on using the hourly weather data since it resembles reality closer than daily weather data. 
 
 ```{r}
 # timestamp set as datetime object
@@ -1187,19 +1137,6 @@ analysis_city <- walking_segments |>
   slice_min(time_diff, n = 1) |>
   ungroup() |>
   filter(!is.na(rain))
-```
-
-```{r}
-# visualize
-ggplot(analysis_city, aes(rain, speed_kmh)) +
-  geom_point(alpha = 0.3) +
-  geom_smooth(method = "lm") +
-  theme_minimal() +
-  labs(
-    x = "Rain (city average)",
-    y = "Walking speed (km/h)",
-    title = "City-level rain vs walking speed"
-  )
 ```
 
 ### B) Station-level Analysis
@@ -1244,19 +1181,6 @@ analysis_station <- segments_station |>
 ```
 
 ```{r}
-# visualize
-ggplot(analysis_station, aes(Wert, speed_kmh)) +
-  geom_point(alpha = 0.3) +
-  geom_smooth(method = "lm") +
-  theme_minimal() +
-  labs(
-    x = "Rainfall duration [min]",
-    y = "Walking speed [km/h]",
-    title = "Rainfall duration vs walking speed, station-level analysis"
-  )
-```
-
-```{r}
 # define rain vs. no rain
 segments_weather_rain <- segments_weather_rain |>
   mutate(
@@ -1286,48 +1210,6 @@ analysis_data |>
     sd_speed = sd(speed_kmh, na.rm = TRUE),
     n = n()
   )
-```
-
-```{r}
-# test if significant relationship
-wilcox.test(speed_kmh ~ rain_flag, data = analysis_data)
-```
-
-```{r}
-# see if relationship
-lm(speed_kmh ~ Wert, data = analysis_data)
-```
-
-```{r}
-# visualize all values (including 0)
-
-ggplot(analysis_data, aes(Wert, speed_kmh)) +
-  geom_point(alpha = 0.3) +
-  geom_smooth(method = "lm") +
-  theme_minimal() +
-  labs(
-    x = "Rainfall duration (city average) [min]",
-    y = "Walking speed [km/h]",
-    title="Rainfall duration vs. walking speed, city-level analysis "
-  )
-```
-
-```{r}
-# visualize, but only values where there actually is rain (>0)
-ggplot(analysis_data, aes(Wert, speed_kmh)) +
-  geom_jitter(alpha = 0.2, height = 0) +
-  geom_smooth(
-    data = filter(analysis_data, Wert > 0),
-    method = "lm",
-    color = "blue"
-  ) +
-  labs(
-    x = "Rainfall duration",
-    y = "Walking speed (km/h)",
-    title = "Walking speed vs. rainfall",
-    subtitle = "Regression line fitted only for observations with rainfall > 0"
-  ) +
-  theme_minimal()
 ```
 
 # Results
@@ -1492,17 +1374,151 @@ summary(lm4)
 
 ## Statistical Analysis - Influence of Weather on Walking
 
+### V1
+
+```{r}
+# visualize
+ggplot(segments_weather_clean, aes(x = value, y = speed_kmh)) +
+  geom_point(alpha = 0.3) +
+  geom_smooth(method = "lm") +
+  coord_cartesian(ylim = c(0, 10)) +
+  theme_minimal() +
+  labs(
+    x = "Temperature (°C)",
+    y = "Speed (km/h)"
+  )
+```
+
+```{r}
+# trend analysis
+trend <- lm(speed_kmh ~ value, data = segments_weather_clean)
+
+summary(trend)
+```
+
+```{r}
+# classification of different temperature groups
+segments_weather_clean <- segments_weather_clean |>
+  mutate(
+    temp_group = cut(value,
+                     breaks = quantile(value, probs = seq(0, 1, 0.25), na.rm = TRUE),
+                     include.lowest = TRUE)
+  )
+
+lm(speed_kmh ~ temp_group, data = segments_weather_clean)
+```
+
+```{r}
+# test if difference between temp_groups is significant
+anova(lm(speed_kmh ~ temp_group, data = segments_weather_clean))
+```
+
+```{r}
+# label bins
+segments_weather_clean <- segments_weather_clean |>
+  mutate(temp_group = factor(temp_group,
+                             levels = levels(temp_group),
+                             labels = c("Cold (1-4°C)", "Cool (4-9°C)", "Mild (9-13°C)", "Warm (13-26°C)")))
+
+# remove NA values
+segments_weather_clean <- segments_weather_clean |>
+  filter(!is.na(temp_group))
+```
+
+```{r}
+# visualize
+ggplot(segments_weather_clean, aes(x = temp_group, y = speed_kmh)) +
+  geom_boxplot(fill = "lightblue") +
+  geom_jitter(width = 0.2, alpha = 0.3) +
+  theme_minimal() +
+  labs(
+    x = "Temperature group",
+    y = "Walking speed (km/h)"
+  )
+```
+
+### A) City-level Analysis
+
+```{r}
+# visualize
+ggplot(analysis_city, aes(rain, speed_kmh)) +
+  geom_point(alpha = 0.3) +
+  geom_smooth(method = "lm") +
+  theme_minimal() +
+  labs(
+    x = "Rain (city average)",
+    y = "Walking speed (km/h)",
+    title = "City-level rain vs walking speed"
+  )
+```
+
+### B) Station-level Analysis
+
+```{r}
+# visualize
+ggplot(analysis_station, aes(Wert, speed_kmh)) +
+  geom_point(alpha = 0.3) +
+  geom_smooth(method = "lm") +
+  theme_minimal() +
+  labs(
+    x = "Rainfall duration [min]",
+    y = "Walking speed [km/h]",
+    title = "Rainfall duration vs walking speed, station-level analysis"
+  )
+```
+
+```{r}
+# test if significant relationship
+wilcox.test(speed_kmh ~ rain_flag, data = analysis_data)
+```
+
+```{r}
+# see if relationship
+lm(speed_kmh ~ Wert, data = analysis_data)
+```
+
+```{r}
+# visualize all values (including 0)
+
+ggplot(analysis_data, aes(Wert, speed_kmh)) +
+  geom_point(alpha = 0.3) +
+  geom_smooth(method = "lm") +
+  theme_minimal() +
+  labs(
+    x = "Rainfall duration (city average) [min]",
+    y = "Walking speed [km/h]",
+    title="Rainfall duration vs. walking speed, city-level analysis "
+  )
+```
+
+```{r}
+# visualize, but only values where there actually is rain (>0)
+ggplot(analysis_data, aes(Wert, speed_kmh)) +
+  geom_jitter(alpha = 0.2, height = 0) +
+  geom_smooth(
+    data = filter(analysis_data, Wert > 0),
+    method = "lm",
+    color = "blue"
+  ) +
+  labs(
+    x = "Rainfall duration",
+    y = "Walking speed (km/h)",
+    title = "Walking speed vs. rainfall",
+    subtitle = "Regression line fitted only for observations with rainfall > 0"
+  ) +
+  theme_minimal()
+```
 
 # Discussion
 
-Are the conclusions drawn from the project adequate and coherent? 
--   Are problems that showed up been reported and alternative solutions proposed?
--   Have data science choices been discussed in the light of the theory?
+-   Are the conclusions drawn from the project adequate and coherent?  
+-   Are problems that showed up been reported and alternative solutions proposed?  
+-   Have data science choices been discussed in the light of the theory?  
 
 
-Other influencing factors: 
--	"All trips have associated imperatives, which make them more or less likely to change in adverse weather conditions" --> trip purpose might have a very strong influence --> look at weekdays and weekends separately (@montigny2012)
--	most walking activity is driven by daily routine and imperatives (=trip purpose) (@montigny2012)
+Other influencing factors:  
+-	"All trips have associated imperatives, which make them more or less likely to change in adverse weather conditions" --> trip purpose might have a very strong influence --> look at weekdays and weekends separately (@montigny2012)  
+-	most walking activity is driven by daily routine and imperatives (=trip purpose) (@montigny2012)  
 
 -	sunlight also plays a role: negative interaction between sunlit area and temperature is interesting. It suggests that the positive effect of temperature on walking is diminished when it is sunny and vice versa (@montigny2012)
 -	air temperature, wind speed, and a sky-clearness index, solar-radiation, humidity (@montigny2012 
@@ -1515,12 +1531,12 @@ Other influencing factors:
 -	rainfall 3 h earlier, suggesting a delay effect of rainfall on cycling, suggest that when it rains, its negative impact not only continues, but it could also be “anticipated” by active travellers. (@zhao2019)
 
 
-Data Quality: 
--   the Google timeline data only records stops --> we could have switched to SDE to also model our movement in between those fixes. 
--   aspace::calc_sde (https://www.rdocumentation.org/packages/aspace/versions/4.1.1/topics/calc_sde)
--   sfdep::std_dev_ellipse (https://cran.rstudio.com/web/packages/sfdep/sfdep.pdf)
+Data Quality:  
+-   the Google timeline data mostly records stops --> we could have switched to SDE to also model our movement in between those fixes.  
+-   aspace::calc_sde (https://www.rdocumentation.org/packages/aspace/versions/4.1.1/topics/calc_sde)  
+-   sfdep::std_dev_ellipse (https://cran.rstudio.com/web/packages/sfdep/sfdep.pdf)  
   
-
+Concave Hulls: we only calculated it per day, even when the weather data was 1h or 15min --> this was to show that granularity matters (RQ4)
 
 # Appendix
 
@@ -1529,7 +1545,6 @@ Data Quality:
 <!-- after installing the wordcountadding, remove the line "#| eval: false" -->
 
 ```{r}
-#| eval: false
-wordcountaddin::word_count("index.qmd")
-wordcountaddin::text_stats("index.qmd")
+wordcountaddin::word_count("index.qmd") # counts words
+wordcountaddin::text_stats("index.qmd") # counts characters
 ```
