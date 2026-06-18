@@ -61,65 +61,23 @@ tbd
 
 # Introduction
 
-Since the dawn of human evolution, humans have walked across the surface of the earth. To this day, it is the most essential mode of transport since almost all trips include some part of moving on foot (@giannoulaki2024). Therefore it is no wonder that pedestrian movement has been studied in depth and the results are used to create appealing and efficient walking infrastructure that also shield these vulnerable people against other, potentially dangerous transport modes. 
-
-
 @laube2011 investigate how temporal scale affects the calculation of movement parameters (speed, sinuosity and turning angle) of animal trajectories. Also done by @zhao2019 and us.
 
+Since the dawn of human evolution, humans have walked across the surface of the earth. To this day, it is the most essential mode of transport since almost all trips include some part of moving on foot (@giannoulaki2024). Therefore, it is no wonder that pedestrian movement has been studied in depth and the results are used to create appealing and efficient walking infrastructure that also shield these vulnerable people against other, potentially dangerous transport modes. 
 
-@montigny2012 
-Weather has important direct effects on the physical environment
-northern hemisphere, low temperatures and precipitation are generally associated with poor physical conditions for walking
+One of the most relevant variables when talking about pedestrian movement is movement speed. According to @giannoulaki2024, pedestrian speed depends on five factors: Pedestrian flow characteristics (e.g. density), pedestrian attributes (e.g. age, gender), layout configuration (e.g. inclination of the route), ambient conditions (e.g. weather, noise) and pedestrian behavioural patterns (e.g. using a phone). We will focus on the ambient conditions, more precisely on weather (temperature, precipitation) and its effect on pedestrian movement as well as its effect on mobility pattern in general. 
 
-other influencing factors: air temperature, wind speed, and a sky-clearness index, solar-radiation, humidity
+Weather conditions can influence both the decision to walk and the way pedestrians move through space. Among the different meteorological variables, precipitation and temperature are particularly relevant due to their direct effects on the walking environment and human comfort. In the northern hemisphere, low temperatures and precipitation are generally associated with poorer conditions for walking, as rain, snow, and ice can reduce pavement quality and require pedestrians to adopt more cautious, hence slower, movement patterns (@montigny2012; @giannoulaki2024). However, the relationship between weather and walking behaviour is complex. While poor conditions may reduce walking speeds due to safety concerns, pedestrians may also increase their speed under unfavourable weather to minimize exposure and reach their destination more quickly (@giannoulaki2024).
 
-air temperature has a singificant effect on routing when it is warm (23°C or more) --> shade seeking
+Precipitation is one of the strongest determinants of pedestrian activity. Studies have shown that rainfall significantly reduces pedestrian traffic (@zhao2019). Furthermore, the effect of precipitation extends beyond the immediate weather event, as travellers may anticipate rainfall and adjust their mobility decisions in advance (@zhao2019). Temperature, on the other hand, influences pedestrian behaviour through both physiological and behavioural mechanisms. Warmer temperatures up to a certain threshold can encourage walking, while higher temperatures (23°C or more) may lead pedestrians to seek shade and alter their routes, leading to potentially higher sinuosity and slower speeds (@montigny2012). However, walking may also serve as a heat-production mechanism under colder conditions, resulting in faster walking speeds during winter or in cooler climates (@obuchi2021).
 
-"All trips have associated imperatives, which make them more or less likely to change in adverse weather conditions" --> trip purpose might have a very strong influence --> look at weekdays and weekends separately
+@rotton1990 found that head causes individuals to walk faster. This influence of temperature on walking speed can also be explained through the Yerkes–Dodson law, where moderate arousal can improve performance, while excessive stress reduces it (U-shaped curve) (@yerkes1908). Warmer temperatures may therefore increase walking speed up to a point, but extreme temperatures can negatively affect speed. Since precipitation and temperature are two of the most influential and measurable weather factors affecting both walking activity and movement characteristics, this project focuses on their impact on pedestrian mobility patterns and walking behaviour.
 
-largely related to air temperature and precipitation, given that most walking activity is driven by daily routine and imperatives (=trip purpose)
-
-precipitation had by far the largest effect on walking levels with sunlight and temperature also playing a role.
-
-negative interaction between sunlit area and temperature is interesting. It suggests that the positive effect of temperature on walking is diminished when it is sunny and vice versa
-
-@rotton1990
-individuals walk faster on cold than on temperate days
-
-city size might also influence tempo --> some cultures walk faster in large cities than in smaller ones
-high level of density --> faster
-women walk faster in noisy and densly populated settings  
-
---> heat is arousing
-
-"individuals walk faster in cool settings and on moderately cold days, they do not walk slower at comofrtably higher temperatures"
-"heat causes individuals to walk faster"
-
-@yerkes1908
-The Yerkes–Dodson law is principle founded in psychology that states that performance improves with mental arousal, up to an optimal point. Below that point, moderate arousal when conducting simple tasks (e.g. walking) leads to better performance (e.g. walking faster).  However, it is a U-shaped curve, when arousal is too high --> drop in performance because it is stress
-
-@obuchi2021
-walking speed is typically faster in urban areas than in rural areas
-walking speed is faster in winter than in summer --> wanting to reach the destination earlier
-walking speed is faster in cities with cooler temperatures than in warmer cities
-walking could act as a heat production mechanism in humans under low or moderate temperature conditions.
-
-@giannoulaki2024
-Pedestrian speed depends on pedestrian flow characteristics (e.g. density), pedestrian attributes (e.g. age, gender), layout configuration (e.g. inclination), ambient conditions (e.g. weather, noise) and pedestrian behavioral patterns (e.g. using a phone).
-
-lower lighting levels led to a decrease in walking speed --> sunlight, time of day
-
-Weather conditions may have negative effects on pavement condition (ice, snow, etc.) and result in more carefully walking behavior and, hence, lower walking speed rates
-
-BUT also higher speeds for pedestrians under adverse weather in order to reach the destination quickly and protect themselves
-
-@zhao2019
-active travel as a mode choice is more likely to be influenced by adverse weather conditions
-Precipitation reduced the average hourly pedestrian volumes by approximately 13%
-Precipitation and season affected the pedestrian levels, even when the time of day and the day of week were controlled
-rainfall 3 h earlier, suggesting a delay effect of rainfall on cycling
-weather impact accounted for a larger percentage of the variation in active travel on weekdays than on weekends.
-suggest that when it rains, its negative impact not only continues, but it could also be “anticipated” by active travelers.
+More precisely, we decided on the following Research Questions (RQ):  
+I) How do temperature and precipitation affect daily travel distance, speed and sinuousity?  
+II) Does travel speed increase with more precipitation?  
+III) How do temperature and precipitation affect the spatial extent of activity spaces?  
+IV) Do different temporal scales of the weather data matter?  
 
 
 
@@ -986,10 +944,28 @@ Are the conclusions drawn from the project adequate and coherent?
 -   Are problems that showed up been reported and alternative solutions proposed?
 -   Have data science choices been discussed in the light of the theory?
 
+
+Other influencing factors: 
+-	"All trips have associated imperatives, which make them more or less likely to change in adverse weather conditions" --> trip purpose might have a very strong influence --> look at weekdays and weekends separately (@montigny2012)
+-	most walking activity is driven by daily routine and imperatives (=trip purpose) (@montigny2012)
+
+-	sunlight also plays a role: negative interaction between sunlit area and temperature is interesting. It suggests that the positive effect of temperature on walking is diminished when it is sunny and vice versa (@montigny2012)
+-	air temperature, wind speed, and a sky-clearness index, solar-radiation, humidity (@montigny2012 
+-	lower lighting levels led to a decrease in walking speed --> sunlight, time of day (@giannoulaki2024) 
+
+-	city size might also influence tempo --> some cultures walk faster in large cities than in smaller ones (@rotton1990)
+-	walking speed is typically faster in urban areas than in rural areas (@obuchi2021)
+
+-	Precipitation and season affected the pedestrian levels, even when the time of day and the day of week were controlled (@zhao2019)
+-	rainfall 3 h earlier, suggesting a delay effect of rainfall on cycling, suggest that when it rains, its negative impact not only continues, but it could also be “anticipated” by active travellers. (@zhao2019)
+
+
 Data Quality: 
 -   the Google timeline data only records stops --> we could have switched to SDE to also model our movement in between those fixes. 
   -   aspace::calc_sde (https://www.rdocumentation.org/packages/aspace/versions/4.1.1/topics/calc_sde)
   -   sfdep::std_dev_ellipse (https://cran.rstudio.com/web/packages/sfdep/sfdep.pdf)
+  
+
 
 # Appendix
 
