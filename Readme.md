@@ -19,15 +19,14 @@ quarto render Readme.md --to pdf
 
 ## Abstract 
 <!-- (50-60 words) -->
-This project investigates how weather conditions influence human mobility patterns in Zürich. We will be using personal GPS tracking trajectories and meteorological data. We analyse movement characteristics such as travel distance, activity spaces (area), speed, sinousity and temporal mobility patterns under different environmental conditions. We aim to identify relationships between weather and everyday movement behavior using R
+This project investigates how weather conditions influence human mobility patterns in Zürich. We will be using personal GPS tracking trajectories and meteorological data. We analyse movement characteristics such as travel distance, activity spaces (area), speed, sinousity and temporal mobility patterns under different environmental conditions. We aim to identify relationships between weather and everyday movement behavior using R.
 
 ## Research Questions
 <!-- (50-60 words) -->
-I) How do temperature and precipitation affect daily travel distance, speed, sinuousity and acceleration?  
-II) How do temperature and precipitation affect the spatial extent of activity spaces?  
-III) Does travel speed increase with more precipitation?  
-IV) How does precipitation affect the number of stops?
-Perhaps V): Do short trips with public transport (instead of walking) occur more often with precipitation than without?
+I) How do temperature and precipitation affect daily travel distance, speed and sinuousity?  
+II) Does travel speed increase with more precipitation?  
+III) How do temperature and precipitation affect the spatial extent of activity spaces?  
+IV) Do different temporal scales of the weather data matter?  
 
 ## Results / products
 <!-- (50-100 words) -->
