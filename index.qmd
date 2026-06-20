@@ -1,6 +1,6 @@
 ---
-title: Weather Conditions and their Influence on human Mobility Patterns
-subtitle: GEO 880 Project
+title: Weather Conditions and their Influence on Human Mobility Patterns
+subtitle: GEO 880 - Computational Movement Analysis - Final Project
 author: Lars Weidinger & Javier Feller
 date: today
 format: 
@@ -37,7 +37,7 @@ One of the most relevant variables when talking about pedestrian movement is mov
 
 Following the established framework for context-aware Movement Analysis (CAMA) @nathan2008, we investigate precipitation and temperature effects (external factors) on spatial extent (navigation capacity) and on speed levels (motion capacity). It is important to note that weather as external factor can have a direct effect on motion capacity but also indirect trough navigation capacity. This is more extensively discussed in chapter 4.  
 
-![Adapted framework from @nathan2008](figures/fig1.png){width=300}{fig-align="center"}
+![Adapted framework from @nathan2008](figures/fig1.png){width=300}
 
 Weather conditions can influence both the decision to walk and the way pedestrians move through space. Among the different meteorological variables, precipitation and temperature are particularly relevant due to their direct effects on the walking environment and human comfort. In the northern hemisphere, low temperatures and precipitation are generally associated with poorer conditions for walking, as rain, snow, and ice can reduce pavement quality and require pedestrians to adopt more cautious, hence slower, movement patterns (@montigny2012; @giannoulaki2024). However, the relationship between weather and walking behaviour is complex. While poor conditions may reduce walking speeds due to safety concerns, pedestrians may also increase their speed under unfavourable weather to minimize exposure and reach their destination more quickly (@giannoulaki2024).
 
@@ -58,11 +58,6 @@ We let the Google timeline run in the background of our smartphone from 08.03.20
 Since previous research showed the importance and sensitivity of varying scale (@laube2011, @zhao2019), special attention is given to it in this analysis. For the weather station data, we account for the effect of spatial scale selection comparing city-level vs. station-level analysis as well as considering varying temporal scale with daily, hourly and 15min weather data. Thus, we also perform a small cross-scale movement analysis. For the mobility data, we don't include a cross-scale movement analysis, but discuss our choices and parameters extensively.
 
 # Material and Methods
-
--   How was research implemented addressing the Research questions? 
--   What about problems and limitations and strategies overcoming these? 
--   Simple solutions vs. own original techniques 
--   Is the code properly commented/annotated?
 
 ## Load Packages
 
@@ -829,21 +824,71 @@ segments <- segments |>
 
 Here, the stops  (red) and moves (blue) from the trajectories are visualized. Most of the points are movements, indicating that we have enough "movement segments" for further analysis. 
 
+::: {.panel-tabset .nav-pills}
+
+#### All stops and moves
+
 ```{r}
 # visualize stops and moves together with city boundary
 ggplot() +
-  geom_sf(data = stadtgrenze,
-          fill = "#D5F4FF",
-          color = "black") +
-  geom_sf(data = segments,
-          aes(color = type),
-          size = 2) +
-  scale_color_manual(
-    values = c("STOP" = "blue", "MOVE" = "red")
-  ) +
+  geom_sf(data = stadtgrenze, fill = "#D5F4FF", color = "black") +
+  
+  geom_sf(data = segments, aes(color = type), size = 1.2) +
+  
+  scale_color_manual(values = c("Stop" = "blue", "Move" = "red")) +
+
   coord_sf(crs = crs_lv95) +
-  theme_minimal()
+
+  labs(
+    title = "ArcGIS Earth Stops and Moves",
+    color = "Movement",
+    x = "Easting [m]",
+    y = "Northing [m]") +
+  
+  theme_minimal() +
+  
+  theme(
+    plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
+    legend.title = element_text(size = 10),
+    legend.text = element_text(size = 8),
+    axis.text = element_blank(), 
+    axis.title = element_blank()
+    )
 ```
+
+#### Zurich stops and moves
+
+```{r}
+# visualize stops and moves inside Zurich together with city boundary
+ggplot() +
+  geom_sf(data = stadtgrenze, fill = "#D5F4FF", color = "black") +
+  
+  geom_sf(data = segments |>
+            st_intersection(stadtgrenze), 
+          aes(color = type), size = 1.2) +
+  
+  scale_color_manual(values = c("Stop" = "blue", "Move" = "red")) +
+
+  coord_sf(crs = crs_lv95) +
+
+  labs(
+    title = "ArcGIS Earth Stops and Moves",
+    color = "Movement",
+    x = "Easting [m]",
+    y = "Northing [m]") +
+  
+  theme_minimal() +
+  
+  theme(
+    plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
+    legend.title = element_text(size = 10),
+    legend.text = element_text(size = 8),
+    axis.text = element_blank(), 
+    axis.title = element_blank()
+    )
+```
+
+:::
 
 ### Speed exploratory analysis
 
@@ -864,17 +909,35 @@ segments_trim <- segments |>
   filter(speed_kmh <= upper)
 ```
 
-As can be seen in the below boxplot, the majority of the fixes have a speed below 20 km/h, indicating high shares of foot travel or slow transport. 
+As can be seen in the plots below, the majority of the fixes have a speed below 20 km/h, indicating high shares of foot travel or slow transport. 
+
+::: {.panel-tabset .nav-pills}
+
+#### Boxplot
 
 ```{r}
 # boxplot for distribution
 boxplot(
   segments_trim$speed_kmh,
-  main = "Speed (km/h) – trimmed 2.5% tails",
+  main = "Distribution of Speed (km/h) – trimmed top 2.5%",
   ylab = "Speed (km/h)",
   col = "lightgreen"
 )
 ```
+
+#### Histogram
+
+```{r}
+# histogram for distribution
+hist(
+  segments_trim$speed_kmh,
+  main = "Distribution of Speed (km/h) – trimmed top 2.5%",
+  ylab = "Speed (km/h)",
+  col = "lightgreen"
+)
+```
+
+:::
 
 ### Travel Mode Detection - Walking
 
@@ -945,12 +1008,15 @@ Here, we visualize for validation purposes all voronoi polygons and the correspo
 # visualisation
 ggplot() +
   geom_sf(data = voronoi_clipped_meteoblue, aes(fill = locationID)) +
+  
   geom_sf(data = stadtgrenze, fill = NA, color = "black") +
+  
   geom_sf(data = meteoblue_sf, color = "red") +
   
   coord_sf(crs = crs_lv95) +
   
   scale_fill_viridis_d(option = "turbo") +
+  
   guides(fill = "none") +
   
   labs(
@@ -1004,12 +1070,15 @@ meteoblue_segments_clipped <- st_intersection(
 # visualize Movement Segments with meteoblue weather station polygons
 ggplot() +
   geom_sf(data = voronoi_clipped_meteoblue, aes(fill = locationID), alpha = 0.3) +
+  
   geom_sf(data = stadtgrenze, fill = NA, color = "black") +
+  
   geom_sf(data = meteoblue_segments_clipped, color = "blue", size = 1) +
   
   coord_sf(crs = crs_lv95) +
   
   scale_fill_viridis_d(option = "turbo") +
+  
   guides(fill = "none") +
   
   labs(
@@ -1018,11 +1087,19 @@ ggplot() +
     y = "Northing"
   ) +
   
-  theme_minimal()
+  theme_minimal() +
+
+  theme(
+    plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
+    legend.title = element_text(size = 10),
+    legend.text = element_text(size = 8),
+    axis.text = element_blank(),
+    axis.title = element_blank()
+  )
 ```
 
 ### Temporal Join of Weather Data and Walking Segments
-threshold from literature?
+
 ```{r}
 # find most representative time (midtime) of each segment
 segments <- segments |>
@@ -1071,11 +1148,6 @@ segments_weather_clean <- segments_weather |>
     speed_kmh >= quantile(speed_kmh, 0.02, na.rm = TRUE),
     speed_kmh <= quantile(speed_kmh, 0.98, na.rm = TRUE)
   )
-```
-
-```{r}
-# check if temporal join worked
-summary(segments_weather_clean$time_diff)
 ```
 
 ## Analyze effect of Precipitation
@@ -1174,7 +1246,7 @@ segments_weather_rain <- segments_weather_rain |>
 We detected two stations with no precipitation data. 
 
 ```{r}
-# two stations have all NA-values=> no rainfall data collection?
+# two stations have all NA-values => no rainfall data collection
 segments_weather_rain |>
   filter(is.na(Wert)) |>
   count(ID)
@@ -1212,25 +1284,47 @@ Earlier we assigned
 ```{r}
 # visualise the variable Temperature
 ggplot(daily_hulls_weather, aes(x = Temperature, y = log(area_m2))) +
-  geom_point() +
-  geom_smooth(method = "lm", se = TRUE) +
+  
+  geom_point(size = 1.2) +
+  
+  geom_smooth(method = "lm", se = TRUE, linewidth = 1) +
+  
   labs(
-    x = "Temperature (°C)",
-    y = "log(Activity Space Area km²)",
-    title = "Activity Space vs Temperature") +
-  theme_minimal()
+    x = "Temperature [°C]",
+    y = "log(Activity Space Area [m^2])",
+    title = "Relationship Between Temperature and Activity Space Size",
+    subtitle = "Linear regression with 95% confidence interval") +
+  
+  theme_minimal() +
+  
+  theme(
+    plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
+    legend.title = element_text(size = 10),
+    legend.text = element_text(size = 8)
+    )
 ```
 
 ```{r}
 # visualise the variable RainDur
 ggplot(daily_hulls_weather, aes(x = RainDur, y = log(area_m2))) +
-  geom_point() +
-  geom_smooth(method = "lm", se = TRUE) +
+  
+  geom_point(size = 1.2) +
+  
+  geom_smooth(method = "lm", se = TRUE, linewidth = 1) +
+  
   labs(
-    x = "Rain Duration (min)",
-    y = "log(Activity Space Area km²)",
-    title = "Activity Space vs Rain Duration") +
-  theme_minimal()
+    x = "Rain Duration [min]",
+    y = "log(Activity Space Area [m^2])",
+    title = "Relationship Between Rain Duration and Activity Space Size",
+    subtitle = "Linear regression with 95% confidence interval") +
+  
+  theme_minimal() +
+  
+  theme(
+    plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
+    legend.title = element_text(size = 10),
+    legend.text = element_text(size = 8)
+    )
 ```
 
 ```{r}
@@ -1261,25 +1355,47 @@ The low R\^2 (0.21) and adjusted R\^2 (0.15) suggests other factors (e.g. day of
 ```{r}
 # visualise the variable Temperature
 ggplot(daily_hulls_weather_field, aes(x = Temperature, y = log(area_m2))) +
-  geom_point() +
-  geom_smooth(method = "lm", se = TRUE) +
+  
+  geom_point(size = 1.2) +
+  
+  geom_smooth(method = "lm", se = TRUE, linewidth = 1) +
+  
   labs(
-    x = "Temperature (°C)",
-    y = "log(Activity Space Area km²)",
-    title = "Activity Space vs Temperature") +
-  theme_minimal()
+    x = "Temperature [°C]",
+    y = "log(Activity Space Area [m^2])",
+    title = "Relationship Between Temperature and Activity Space Size",
+    subtitle = "Linear regression with 95% confidence interval") +
+  
+  theme_minimal() +
+  
+  theme(
+    plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
+    legend.title = element_text(size = 10),
+    legend.text = element_text(size = 8)
+    )
 ```
 
 ```{r}
 # visualise the variable RainDur
 ggplot(daily_hulls_weather_field, aes(x = RainDur, y = log(area_m2))) +
-  geom_point() +
-  geom_smooth(method = "lm", se = TRUE) +
+  
+  geom_point(size = 1.2) +
+  
+  geom_smooth(method = "lm", se = TRUE, linewidth = 1) +
+  
   labs(
-    x = "Rain Duration (min)",
-    y = "log(Activity Space Area km²)",
-    title = "Activity Space vs Rain Duration") +
-  theme_minimal()
+    x = "Rain Duration [min]",
+    y = "log(Activity Space Area [m^2])",
+    title = "Relationship Between Rain Duration and Activity Space Size",
+    subtitle = "Linear regression with 95% confidence interval") +
+  
+  theme_minimal() +
+  
+  theme(
+    plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
+    legend.title = element_text(size = 10),
+    legend.text = element_text(size = 8)
+    )
 ```
 
 ```{r}
@@ -1299,25 +1415,47 @@ Furthermore, the R\^2 and Adjusted R\^2 values are slightly higher, meaning that
 ```{r}
 # visualise the variable Temperature
 ggplot(hourly_hulls_weather_field, aes(x = Temperature, y = log(area_m2))) +
-  geom_point() +
-  geom_smooth(method = "lm", se = TRUE) +
+  
+  geom_point(size = 1.2) +
+  
+  geom_smooth(method = "lm", se = TRUE, linewidth = 1) +
+  
   labs(
-    x = "Temperature (°C)",
-    y = "log(Activity Space Area km²)",
-    title = "Activity Space vs Temperature") +
-  theme_minimal()
+    x = "Temperature [°C]",
+    y = "log(Activity Space Area [m^2])",
+    title = "Relationship Between Temperature and Activity Space Size",
+    subtitle = "Linear regression with 95% confidence interval") +
+  
+  theme_minimal() +
+  
+  theme(
+    plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
+    legend.title = element_text(size = 10),
+    legend.text = element_text(size = 8)
+    )
 ```
 
 ```{r}
 # visualise the variable RainDur
 ggplot(hourly_hulls_weather_field, aes(x = RainDur, y = log(area_m2))) +
-  geom_point() +
-  geom_smooth(method = "lm", se = TRUE) +
+  
+  geom_point(size = 1.2) +
+  
+  geom_smooth(method = "lm", se = TRUE, linewidth = 1) +
+  
   labs(
-    x = "Rain Duration (min)",
-    y = "log(Activity Space Area km²)",
-    title = "Activity Space vs Rain Duration") +
-  theme_minimal()
+    x = "Rain Duration [min]",
+    y = "log(Activity Space Area [m^2])",
+    title = "Relationship Between Rain Duration and Activity Space Size",
+    subtitle = "Linear regression with 95% confidence interval") +
+  
+  theme_minimal() +
+  
+  theme(
+    plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
+    legend.title = element_text(size = 10),
+    legend.text = element_text(size = 8)
+    )
 ```
 
 ```{r}
@@ -1338,13 +1476,24 @@ If we have a look at for example the 24.03.2026 we can see the differences betwe
 ```{r}
 # visualise the variable Temperature
 ggplot(quarter_hourly_hulls_weather_field, aes(x = Temperature, y = log(area_m2))) +
-  geom_point() +
-  geom_smooth(method = "lm", se = TRUE) +
+  
+  geom_point(size = 1.2) +
+  
+  geom_smooth(method = "lm", se = TRUE, linewidth = 1) +
+  
   labs(
-    x = "Temperature (°C)",
-    y = "log(Activity Space Area km²)",
-    title = "Activity Space vs Temperature") +
-  theme_minimal()
+    x = "Temperature [°C]",
+    y = "log(Activity Space Area [m^2])",
+    title = "Relationship Between Temperature and Activity Space Size",
+    subtitle = "Linear regression with 95% confidence interval") +
+  
+  theme_minimal() +
+  
+  theme(
+    plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
+    legend.title = element_text(size = 10),
+    legend.text = element_text(size = 8)
+    )
 ```
 
 ```{r}
@@ -1359,19 +1508,31 @@ summary(lm4)
 
 ## Statistical Analysis - Influence of Weather on Walking
 
-### V1
+### Influence on Walking Speed
 
 ```{r}
 # visualize
 ggplot(segments_weather_clean, aes(x = value, y = speed_kmh)) +
+  
   geom_point(alpha = 0.3) +
-  geom_smooth(method = "lm") +
+  
+  geom_smooth(method = "lm", se = TRUE, linewidth = 1) +
+  
   coord_cartesian(ylim = c(0, 10)) +
-  theme_minimal() +
+
   labs(
-    x = "Temperature (°C)",
-    y = "Speed (km/h)"
-  )
+    x = "Temperature [°C]",
+    y = "Speed [km/h]",
+    title = "Relationship Between Temperature and Walking Speed",
+    subtitle = "Linear regression with 95% confidence interval") +
+  
+  theme_minimal() +
+  
+  theme(
+    plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
+    legend.title = element_text(size = 10),
+    legend.text = element_text(size = 8)
+    )
 ```
 
 ```{r}
@@ -1415,13 +1576,25 @@ However, if we classify the segments into different temperature groups, a clear 
 ```{r}
 # visualize
 ggplot(segments_weather_clean, aes(x = temp_group, y = speed_kmh)) +
-  geom_boxplot(fill = "lightblue") +
+  
+  geom_boxplot(fill = "lightgreen") +
+  
   geom_jitter(width = 0.2, alpha = 0.3) +
-  theme_minimal() +
+  
   labs(
-    x = "Temperature group",
-    y = "Walking speed (km/h)"
-  )
+    x = "Temperature Group",
+    y = "Speed [km/h]",
+    title = "Relationship Between Temperature Group and Walking Speed",
+    subtitle = "Linear regression with 95% confidence interval") +
+  
+  theme_minimal() +
+  
+  theme(
+    plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
+    legend.title = element_text(size = 10),
+    legend.text = element_text(size = 8)
+    )
+
 ```
 
 ### A) City-level Analysis
@@ -1431,14 +1604,24 @@ Based on the city-level weather data, we clearly see that with increasing rain d
 ```{r}
 # visualize
 ggplot(analysis_city, aes(rain, speed_kmh)) +
+  
   geom_point(alpha = 0.3) +
+  
   geom_smooth(method = "lm") +
-  theme_minimal() +
+
   labs(
-    x = "Rain (city average)",
-    y = "Walking speed (km/h)",
-    title = "City-level rain vs walking speed"
-  )
+    x = "Rain Duration [min]",
+    y = "Speed [km/h]",
+    title = "City-level Relationship Between Rain and Walking Speed",
+    subtitle = "Linear regression with 95% confidence interval") +
+  
+  theme_minimal() +
+  
+  theme(
+    plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
+    legend.title = element_text(size = 10),
+    legend.text = element_text(size = 8)
+    )
 ```
 
 ### B) Station-level Analysis
@@ -1448,14 +1631,24 @@ Similarly to the city-level data, a negative trend is visible. However, with sta
 ```{r}
 # visualize
 ggplot(analysis_station, aes(Wert, speed_kmh)) +
+
   geom_point(alpha = 0.3) +
+  
   geom_smooth(method = "lm") +
-  theme_minimal() +
+
   labs(
-    x = "Rainfall duration [min]",
-    y = "Walking speed [km/h]",
-    title = "Rainfall duration vs walking speed, station-level analysis"
-  )
+    x = "Rain Duration [min]",
+    y = "Speed [km/h]",
+    title = "Station-level Relationship Between Rain and Walking Speed",
+    subtitle = "Linear regression with 95% confidence interval") +
+  
+  theme_minimal() +
+  
+  theme(
+    plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
+    legend.title = element_text(size = 10),
+    legend.text = element_text(size = 8)
+    )
 ```
 
 The relationship between speed and rain is also tested using a wilcox test. With a p-value of 0.2229, no significant relationship can be found.
@@ -1465,7 +1658,6 @@ The relationship between speed and rain is also tested using a wilcox test. With
 wilcox.test(speed_kmh ~ rain_flag, data = analysis_data)
 ```
 
-
 ```{r}
 # see if relationship
 lm(speed_kmh ~ Wert, data = analysis_data)
@@ -1473,34 +1665,51 @@ lm(speed_kmh ~ Wert, data = analysis_data)
 
 ```{r}
 # visualize all values (including 0)
-
 ggplot(analysis_data, aes(Wert, speed_kmh)) +
+  
   geom_point(alpha = 0.3) +
+  
   geom_smooth(method = "lm") +
-  theme_minimal() +
+
   labs(
-    x = "Rainfall duration (city average) [min]",
-    y = "Walking speed [km/h]",
-    title="Rainfall duration vs. walking speed, city-level analysis "
-  )
+    x = "Rain Duration (city average) [min]",
+    y = "Speed [km/h]",
+    title = "City-level Relationship Between Rain and Walking Speed",
+    subtitle = "Linear regression with 95% confidence interval") +
+  
+  theme_minimal() +
+  
+  theme(
+    plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
+    legend.title = element_text(size = 10),
+    legend.text = element_text(size = 8)
+    )
 ```
 
 ```{r}
 # visualize, but only values where there actually is rain (>0)
 ggplot(analysis_data, aes(Wert, speed_kmh)) +
+  
   geom_jitter(alpha = 0.2, height = 0) +
+  
   geom_smooth(
     data = filter(analysis_data, Wert > 0),
     method = "lm",
-    color = "blue"
-  ) +
+    color = "blue") +
+
   labs(
-    x = "Rainfall duration",
-    y = "Walking speed (km/h)",
-    title = "Walking speed vs. rainfall",
-    subtitle = "Regression line fitted only for observations with rainfall > 0"
-  ) +
-  theme_minimal()
+    x = "Rain Duration [min]",
+    y = "Speed [km/h]",
+    title = "Relationship Between Rain and Walking Speed only for observations with rainfall > 0",
+    subtitle = "Linear regression with 95% confidence interval ") +
+  
+  theme_minimal() +
+  
+  theme(
+    plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
+    legend.title = element_text(size = 10),
+    legend.text = element_text(size = 8)
+    )
 ```
 
 # Discussion
@@ -1511,18 +1720,18 @@ ggplot(analysis_data, aes(Wert, speed_kmh)) +
 
 ## R1: How does temperature affect daily travel distance and speed?  
 
-### A) Temperature and daily travel distance
+### A) Temperature and Daily Travel Distance
 
 
-### B) Temperature and speed
+### B) Temperature and Speed
 On the first sight, it seems that there is no relationship between temperature and walking speed. However, when dividing the segments into temperature groups, clear differences become visible. In general, higher temperatures are associated with lower walking speed, from 4.8km/h for cool temperatures to almost 4km/h for warm temperatures except for very cold temperatures, where also slow walking speeds are identified. Since the coldest temperatures are close to zero, a possible explanation for the low speed with cold temperatures is the increased caution and thus reduced velocity due to an elevated danger of slipping. These patterns are in line with previous research, which highlighted a certain increase in walking with higher temperatures, while very cold conditions could lead to slower speeds (@montigny2012; @giannoulaki2024), as type of u-shaped curve (@yerkes1908). However, the relationship did not prove to be significant, which is likely due to the small set of trajectories.
 
-
 ## R2: How does precipitation affect daily travel distance and speed? 
-### A) Daily travel distance and speed
+
+### A) Precipitation and Daily Travel Distance
 
 
-### B)Precipitation and speed
+### B) Precipitation and Speed
 Contrary to our expectations, increasing precipitation duration is associated with lower walking velocity. We hypothesized similarly to @giannoulaki2024 that pedestrians would increase their speed under unfavourable weather to minimize exposure. However, other studies argue that precipitation reduces similarly to snow pavement quality and thus implies slower movement patterns. (@montigny2012; @giannoulaki2024). Overall, due to the very small amount of rain data caused by dry months and two stations not collecting any rain data, this part of the research question can not be adequately answered.
 
 ## R3: How do temperature and precipitation affect the spatial extent of activity spaces?
@@ -1530,10 +1739,10 @@ Contrary to our expectations, increasing precipitation duration is associated wi
 
 ## R4: Do different temporal and spatial scales of the weather data matter? 
 
-### A) Temporal scales of weather data
+### A) Temporal Scales of Weather Data
 
 
-### B) spatial scales of weather data
+### B) Spatial Scales of Weather Data
 The comparison between the analysis with city-level and with station-level weather data, revelead that it can have an effect on the quantification of the relationship. Although in both cases a negative relationship between precipitation and walking speed was identified, the station-level analysis showed a more clear trend. This can be likely explained by closer matching of weather stations to a certain segment.
 
 ## Limitations
@@ -1565,12 +1774,14 @@ Fourth, regarding data quality, the Google timeline data mostly records stops. W
   
 Also, Concave Hulls: we only calculated it per day, even when the weather data was 1h or 15min --> this was to show that granularity matters (RQ4)
 
-We focused on conceptual approach!
+We focused on conceptual approach. 
 
 Alterantive datasets: daylight, storms  
 comparing weekdays vs. weekends
 Timeline vs. ArcGIS Earth --\> wie kann man das vergleichen? Filter machen für die Abschnitte, bei denen wir die gleichen Informationen haben --\> falls zu aufwändig, dann treffen wir eine pragmatische Entscheidung und halten das so fest (Vereinfachung)
 more students!!
+
+does not make that much sense if we limit our tracking data to Zurich --> when it was warm, we might have even moved out of the canton
 
 # Conclusion
 
