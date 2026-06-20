@@ -25,6 +25,8 @@ crs_wgs84 <- 4326
 # Picked up by curl-based readers (readr, arrow) via base R's HTTPUserAgent option.
 options(HTTPUserAgent = "OpenDataZurich-StarterCode-Notebook/1.0 (lang=r; +https://github.com/opendatazurich/starter-code)")
 
+# For our weather data we used a dataset by the city of Zurich that provides aggregated weather data (temperature [°C] and rain duration [min]) per day. The dataset is updated every day and we import the whole year and later only use the information that corresponds to our tracking data. 
+
 # Load the daily weather data
 url <- "https://data.stadt-zuerich.ch/dataset/ugz_meteodaten_tagesmittelwerte/download/ugz_ogd_meteo_d1_2026.csv"
 
@@ -54,6 +56,7 @@ if (str_detect(url2, ".csv")) {
 # filter weather_daily_df to our timeframe --> tbd
 
 # import weather station information from the metadata JSON file provided by the city of Zurich
+
 weather_stations <- fromJSON("data/weather_stations_metadata.json")
 
 weather_stations_sf <-  bind_rows(weather_stations)|> 
@@ -119,6 +122,9 @@ meteoblue_weather_data <- meteoblue_weather_data |>
 stadtgrenze <- read_sf("data/Gemeindegrenzen_OGD/Gemeindegrenzen_-OGD.gpkg", layer = "up_gemeinden_f") |> # take the polygon
   filter(gemeindename == "Zürich") |> # of the city of Zurich
   select(geom)
+
+# To answer our RQ, we tracked ourselves with two different tracking tools. We used ArcGIS Earth, which saves a GPS fix every few seconds, independently of movement or non-movement, and saves it to a KML file to answer RQ I and II. We also used Google timeline, which mostly only measures your stop locations and saves it to a JSON file to answer RQ III and IV. 
+# We let the Google timeline run in the background of our smartphone from 08.03.2026 until 26.04.2026. Since we had to manually start and stop the ArcGIS Earth tracking, we only generated 42 tracks of different length between 13.03.2026 and 25.04.2026. 
 
 # import Google Timeline data
 google_timeline <- fromJSON("data/Google_timeline.json", simplifyVector = FALSE) # to keep the nested structure
