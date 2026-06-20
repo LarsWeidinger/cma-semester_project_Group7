@@ -1565,7 +1565,7 @@ Fourth, regarding data quality, the Google timeline data mostly records stops. W
   
 Also, Concave Hulls: we only calculated it per day, even when the weather data was 1h or 15min --> this was to show that granularity matters (RQ4)
 
-We focused on conceptual approach. 
+We focused on conceptual approach!
 
 Alterantive datasets: daylight, storms  
 comparing weekdays vs. weekends
