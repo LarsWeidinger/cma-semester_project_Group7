@@ -46,8 +46,8 @@ Precipitation is one of the strongest determinants of pedestrian activity. Studi
 @rotton1990 found that head causes individuals to walk faster. This influence of temperature on walking speed can also be explained through the Yerkes–Dodson law, where moderate arousal can improve performance, while excessive stress reduces it (U-shaped curve) (@yerkes1908). Warmer temperatures may therefore increase walking speed up to a point, but extreme temperatures can negatively affect speed. Since precipitation and temperature are two of the most influential and measurable weather factors affecting both walking activity and movement characteristics, this project focuses on their impact on pedestrian mobility patterns and walking behaviour.
 
 More precisely, we decided on the following Research Questions (RQ):  
-I) How does temperature affect daily travel distance and speed?  
-II) How does precipitation affect daily travel distance and speed?  
+I) How does temperature affect walking speed?  
+II) How does precipitation affect walking speed?  
 III) How do temperature and precipitation affect the spatial extent of activity spaces?  
 IV) Do different temporal scales of the weather data matter?  
 
@@ -735,6 +735,17 @@ quarter_hourly_hulls_weather_field <- google_timeline_hulls |>
   left_join(quarter_hourly_weather_field, by = "Date")
 ```
 
+```{r}
+# join datasets since there is no rain information in meteoblue
+quarter_hourly_hulls_weather_field_join <- quarter_hourly_hulls_weather_field |>
+  left_join(
+    hourly_hulls_weather_field |>
+      st_drop_geometry() |>
+      select(RainDur, Date),
+    by = "Date"
+  )
+```
+
 ## Influence of Weather on Walking - ArcGIS Earth trajectories analysis
 
 Now we switch from the timeline data to the ArcGIS Earth data, since Google timeline does not allow for precise movement parameter calculations due to the coarse sampling rate. 
@@ -835,7 +846,7 @@ ggplot() +
   
   geom_sf(data = segments, aes(color = type), size = 1.2) +
   
-  scale_color_manual(values = c("Stop" = "blue", "Move" = "red")) +
+  scale_color_manual(values = c("STOP" = "blue", "MOVE" = "red")) +
 
   coord_sf(crs = crs_lv95) +
 
@@ -867,7 +878,7 @@ ggplot() +
             st_intersection(stadtgrenze), 
           aes(color = type), size = 1.2) +
   
-  scale_color_manual(values = c("Stop" = "blue", "Move" = "red")) +
+  scale_color_manual(values = c("STOP" = "blue", "MOVE" = "red")) +
 
   coord_sf(crs = crs_lv95) +
 
@@ -1271,15 +1282,17 @@ analysis_data |>
 
 # Results
 
--   What was achieved overall? 
--   How well are the results presented?
--   How well are the results discussed in the light of the theory?
+In this chapter we will present the performed statistical tests as well as their results and implications. Thanks to the different weather datasets and our own tracking data, coming from two different sources, we were able to achieve results that can later be used to discuss our research questions. 
 
 ## Statistical Analysis Movement Space vs. Weather
 
-Earlier we assigned 
+After preparing the data and creating all necessary auxiliary elements we are now finally able to test our hypothesis. 
 
 ### A) Daily - Voronoi Polygon
+
+::: {.panel-tabset .nav-pills}
+
+#### Temperature
 
 ```{r}
 # visualise the variable Temperature
@@ -1304,6 +1317,8 @@ ggplot(daily_hulls_weather, aes(x = Temperature, y = log(area_m2))) +
     )
 ```
 
+#### Rain Duration
+
 ```{r}
 # visualise the variable RainDur
 ggplot(daily_hulls_weather, aes(x = RainDur, y = log(area_m2))) +
@@ -1327,6 +1342,10 @@ ggplot(daily_hulls_weather, aes(x = RainDur, y = log(area_m2))) +
     )
 ```
 
+:::
+
+We can visually assess that there is a positive relation between temperature and activity space and a negative relation between temperature and rain duration. 
+
 ```{r}
 # linear model with log(area)
 lm1 <- lm(log(area_m2) ~ Temperature + RainDur, data = daily_hulls_weather)
@@ -1344,13 +1363,15 @@ summary(lm1)
 #plot(lm1, which = 5)  # Residuals vs Leverage
 ```
 
-The model is significant as a whole (F-statistic p = 0.028), meaning Temperature and RainDur together do explain some variation in activity space.
+This first model is not statistically significant as a whole (F-statistic p = 0.1438). Meaning Temperature and RainDur together do explain some variation in activity space but the low R\^2 (0.1) and adjusted R\^2 (0.05) suggests other factors (e.g. day of week, work/leisure day, season) that influence activity space more than weather.
 
 There is a suggestive positive trend with Temperature, but we cannot confidently reject H0.
 
-The low R\^2 (0.21) and adjusted R\^2 (0.15) suggests other factors (e.g. day of week, work/leisure day, season) that influence activity space more than weather.
-
 ### B) Daily - Field
+
+::: {.panel-tabset .nav-pills}
+
+#### Temperature
 
 ```{r}
 # visualise the variable Temperature
@@ -1375,6 +1396,8 @@ ggplot(daily_hulls_weather_field, aes(x = Temperature, y = log(area_m2))) +
     )
 ```
 
+#### Rain Duration
+
 ```{r}
 # visualise the variable RainDur
 ggplot(daily_hulls_weather_field, aes(x = RainDur, y = log(area_m2))) +
@@ -1398,6 +1421,10 @@ ggplot(daily_hulls_weather_field, aes(x = RainDur, y = log(area_m2))) +
     )
 ```
 
+:::
+
+We see the same pattern with our new field (IDW) approach. 
+
 ```{r}
 # linear model with log(area)
 lm2 <- lm(log(area_m2) ~ Temperature + RainDur, data = daily_hulls_weather_field)
@@ -1408,10 +1435,15 @@ lm2 <- lm(log(area_m2) ~ Temperature + RainDur, data = daily_hulls_weather_field
 summary(lm2)
 ```
 
-The P-value of the RainDur is slightly lower than from lm1, indicating that the interpolation of precipitation duration is a more appropriate way of identifiying a relationship between weather and movement.\
+The P-value of the RainDur is quite lower than from lm1, indicating that the interpolation of precipitation duration is a more appropriate way of identifying a relationship between weather and movement.\
 Furthermore, the R\^2 and Adjusted R\^2 values are slightly higher, meaning that our interpolated model explains a bit more of the values than the model with the Voronoi polygons.
 
 ### C) Hourly - Field
+
+::: {.panel-tabset .nav-pills}
+
+#### Temperature
+
 ```{r}
 # visualise the variable Temperature
 ggplot(hourly_hulls_weather_field, aes(x = Temperature, y = log(area_m2))) +
@@ -1434,6 +1466,8 @@ ggplot(hourly_hulls_weather_field, aes(x = Temperature, y = log(area_m2))) +
     legend.text = element_text(size = 8)
     )
 ```
+
+#### Rain Duration
 
 ```{r}
 # visualise the variable RainDur
@@ -1458,6 +1492,10 @@ ggplot(hourly_hulls_weather_field, aes(x = RainDur, y = log(area_m2))) +
     )
 ```
 
+:::
+
+Again, we see the same visual pattern now with the hourly data. 
+
 ```{r}
 # linear model with log(area)
 lm3 <- lm(log(area_m2) ~ Temperature + RainDur, data = hourly_hulls_weather_field)
@@ -1470,7 +1508,7 @@ summary(lm3)
 
 We see a significant negative effect of RainDur on the movement area. The whole model explains much more of the variance since the Adjusted R\^2 value is 0.15, meaning that 15% of the variance is explained with our model. Still, this is not a majority but a better model than the one with daily weather data.
 
-If we have a look at for example the 24.03.2026 we can see the differences between aggregated daily and hourly weather data. The daily one says that on that date it was 8.1°C with a RainDur of 187 min, which is quite a lot. The hourly one says that it was 10.7°C with no rain. This means that while over the whole day, it rained quite a lot, we only moved while it was not raining and slightly warmer, effectively being a great example for our research questions.
+If we have a look at for example the 24.03.2026 we can see the differences between aggregated daily and hourly weather data. The daily one says that on that date it was 8.1°C with a RainDur of 187 min, which is quite a lot. The hourly one says that it was 10.7°C with no rain. This means that while over the whole day, it rained quite a lot, we were only moving while it was not raining and slightly warmer, effectively being a great example for our research questions.
 
 ### D) 15 min - Field
 ```{r}
@@ -1496,15 +1534,19 @@ ggplot(quarter_hourly_hulls_weather_field, aes(x = Temperature, y = log(area_m2)
     )
 ```
 
+Note: Here we only have 15 min temperature values and not 15 min rain values. This is why we earlier merged rain duration from hourly data into quarter-hourly temperature data.
+
 ```{r}
 # linear model with log(area)
-lm4 <- lm(log(area_m2) ~ Temperature, data = quarter_hourly_hulls_weather_field)
+lm4 <- lm(log(area_m2) ~ Temperature + RainDur, data = quarter_hourly_hulls_weather_field_join)
 ```
 
 ```{r}
 # full model summary (R^2, adjusted R^2, p-values, residual std error)
 summary(lm4)
 ```
+
+This last model is the best we have. It shows that hourly RainDur has a statistically significant effect (p-value = 0.0167) and temperature has its lowest p-value across all models, indicating a more reliable measurement with the 15 min interval. Our model explains 15% of the variation (Adjusted R\^2) and with an F-value of 4.6 and a p-value for the whole model of 0.016, this means that the model as a whole is significant. Thsi in turn means, that temperature (15 min measurements) and rain duration (hourly measurements) have an impact on our daily activity space. 
 
 ## Statistical Analysis - Influence of Weather on Walking
 
@@ -1714,83 +1756,41 @@ ggplot(analysis_data, aes(Wert, speed_kmh)) +
 
 # Discussion
 
--   Are the conclusions drawn from the project adequate and coherent?  
--   Are problems that showed up been reported and alternative solutions proposed?  
--   Have data science choices been discussed in the light of the theory?  
+## RQ1: How does temperature affect walking speed?  
 
-## R1: How does temperature affect daily travel distance and speed?  
-
-### A) Temperature and Daily Travel Distance
-
-
-### B) Temperature and Speed
 On the first sight, it seems that there is no relationship between temperature and walking speed. However, when dividing the segments into temperature groups, clear differences become visible. In general, higher temperatures are associated with lower walking speed, from 4.8km/h for cool temperatures to almost 4km/h for warm temperatures except for very cold temperatures, where also slow walking speeds are identified. Since the coldest temperatures are close to zero, a possible explanation for the low speed with cold temperatures is the increased caution and thus reduced velocity due to an elevated danger of slipping. These patterns are in line with previous research, which highlighted a certain increase in walking with higher temperatures, while very cold conditions could lead to slower speeds (@montigny2012; @giannoulaki2024), as type of u-shaped curve (@yerkes1908). However, the relationship did not prove to be significant, which is likely due to the small set of trajectories.
 
-## R2: How does precipitation affect daily travel distance and speed? 
+## RQ2: How does precipitation affect walking speed? 
 
-### A) Precipitation and Daily Travel Distance
-
-
-### B) Precipitation and Speed
 Contrary to our expectations, increasing precipitation duration is associated with lower walking velocity. We hypothesized similarly to @giannoulaki2024 that pedestrians would increase their speed under unfavourable weather to minimize exposure. However, other studies argue that precipitation reduces similarly to snow pavement quality and thus implies slower movement patterns. (@montigny2012; @giannoulaki2024). Overall, due to the very small amount of rain data caused by dry months and two stations not collecting any rain data, this part of the research question can not be adequately answered.
 
-## R3: How do temperature and precipitation affect the spatial extent of activity spaces?
+## RQ3: How do temperature and precipitation affect the spatial extent of activity spaces?
 
+Using our last model, lm4, with the 15 min temperature measurements and hourly precipitation measurements, these two factors influence the spatial extent of activity spaces, although their effects are relatively small. Temperature shows a consistent positive relationship with activity space size, but its effect is only clearly observed when measured at shorter temporal intervals. Precipitation has a stronger negative influence, with longer rain durations reducing activity space extent, which was shown to be statistically significant. Overall, precipitation appears to be the stronger limiting factor, while temperature contributes to explaining variations. 
 
-## R4: Do different temporal and spatial scales of the weather data matter? 
+## RQ4: Do different temporal and spatial scales of the weather data matter? 
 
 ### A) Temporal Scales of Weather Data
+The results demonstrate that weather data resolution is crucial, as hourly and 15 min measurements better capture actual movement conditions than daily averages. The explanatory power of the models increases as the temporal resolution becomes finer (daily --> hourly --> 15 min). Daily aggregated weather data shows weak and mostly non-significant relationships, suggesting that coarse temporal averages fail to capture the actual weather conditions experienced during movement.
 
+Hourly data improved our model performances and revealed a statistically significant negative effect of precipitation. The strongest results are obtained at the 15 min scale (lm4). This model achieves the highest explanatory power and statistical significance which confirms our hypothesis that finer temporal scale improves the detection of weather effects. Overall, our results demonstrate that temporal scale is an important factor when analysing the effect of weather on human mobility, with higher-resolution data providing more accurate and behaviourally meaningful results.
 
 ### B) Spatial Scales of Weather Data
-The comparison between the analysis with city-level and with station-level weather data, revelead that it can have an effect on the quantification of the relationship. Although in both cases a negative relationship between precipitation and walking speed was identified, the station-level analysis showed a more clear trend. This can be likely explained by closer matching of weather stations to a certain segment.
+The comparison between the analysis with city-level and with station-level weather data, revealed that it can have an effect on the quantification of the relationship. Although in both cases a negative relationship between precipitation and walking speed was identified, the station-level analysis showed a more clear trend. This can be likely explained by closer matching of weather stations to a certain segment.  
 
 ## Limitations
-
 This analysis has various limitations. 
 First, the classification of segments with static thresholds into movement vs. non-movement  is frequent, but recent research has shows, that the selection of static thresholds is often not adequate and makes no distinction between different use cases. The proposed alternative would be a more flexible and user-adapted approach, which however is out of scope for this project (Bonavita et al., 2022).
 
 Second, the low amount of trajectory and weather data means that our findings need to be interpreted with caution. This is especially the case for the analysis with precipitation data, as very few entries were available due to unusual dry conditions. Thus, the conducted tests and regression analysis have very limited power
 
-Third, many other influencing factors such as trip purpose were not considered in this analysis.
+Third, important behavioural and environmental factors were not included. Trip purpose is likely a major determinant of mobility patterns, as walking behaviour is strongly driven by daily routines and situational needs (@montigny2012). Additional influences such as sunlight, storms, weather complexity and urban context may also affect walking speed and behaviour (@giannoulaki2024; @rotton1990; @obuchi2021). Moreover, precipitation effects may vary over time, including delayed or anticipatory responses (@zhao2019).
 
--	"All trips have associated imperatives, which make them more or less likely to change in adverse weather conditions" --> trip purpose might have a very strong influence --> look at weekdays and weekends separately (@montigny2012)  
--	most walking activity is driven by daily routine and imperatives (=trip purpose) (@montigny2012)  
-
--	sunlight also plays a role: negative interaction between sunlit area and temperature is interesting. It suggests that the positive effect of temperature on walking is diminished when it is sunny and vice versa (@montigny2012)
--	air temperature, wind speed, and a sky-clearness index, solar-radiation, humidity (@montigny2012 
--	lower lighting levels led to a decrease in walking speed --> sunlight, time of day (@giannoulaki2024) 
-
--	city size might also influence tempo --> some cultures walk faster in large cities than in smaller ones (@rotton1990)
--	walking speed is typically faster in urban areas than in rural areas (@obuchi2021)
-
--	Precipitation and season affected the pedestrian levels, even when the time of day and the day of week were controlled (@zhao2019)
--	rainfall 3 h earlier, suggesting a delay effect of rainfall on cycling, suggest that when it rains, its negative impact not only continues, but it could also be “anticipated” by active travellers. (@zhao2019)
-
-
-Fourth, regarding data quality, the Google timeline data mostly records stops. We could have switched to SDE to also model our movement in between those fixes.  
--   aspace::calc_sde (https://www.rdocumentation.org/packages/aspace/versions/4.1.1/topics/calc_sde)  
--   sfdep::std_dev_ellipse (https://cran.rstudio.com/web/packages/sfdep/sfdep.pdf)  
-  
-Also, Concave Hulls: we only calculated it per day, even when the weather data was 1h or 15min --> this was to show that granularity matters (RQ4)
-
-We focused on conceptual approach. 
-
-Alterantive datasets: daylight, storms  
-comparing weekdays vs. weekends
-Timeline vs. ArcGIS Earth --\> wie kann man das vergleichen? Filter machen für die Abschnitte, bei denen wir die gleichen Informationen haben --\> falls zu aufwändig, dann treffen wir eine pragmatische Entscheidung und halten das so fest (Vereinfachung)
-more students!!
-
-does not make that much sense if we limit our tracking data to Zurich --> when it was warm, we might have even moved out of the canton
-
-# Conclusion
-
-This study shows how precipitation and temperature (external factors) influence both the spatial mobility extent (navigation capacity) and walking speed (motion capacity).
-The results suggest that increasing temperature can lead to higher walking speed, except under very cold conditions. Furthermore, the spatial extent decreases with longer precipitation duration. While the data points are too few to detect significant relationship, this analysis shows initial evidence of weather-related effects on pedestrian mobility and serves as basis for further, more in-depth studies.
+Fourth, data limitations remain in the movement representation itself, as Google timeline primarily records stops and alternative approaches such as SDE or standard deviational ellipses could have provided a more continuous representation of movement. Additionally, concave hulls were calculated at daily scale only, even when weather data was available at finer resolutions, but this was a necessary simplification to maintain comparability across analyses. Also, rain duration does not capture rain intensity, which arguably might be even more important. Finally, we introduced a bias when we filtered our movements to the city of Zurich because when the weather is nice, we might have even moved out of the canton, increasing our movement space.
 
 # AI Statement
 
-LLMs were used to improve grammar as well as creating and debugging code in this project, especially for content and challenges that go beyond the scope of the course. All content, analysis, and arguments remain the author’s own, and any information derived from external sources is properly cited. 
+LLMs were used to improve the structure of sentences and grammar as well as creating and debugging code, especially for content and challenges that go beyond the scope of the course. All content, analysis, and arguments remain the author’s own and any information derived from external sources is properly cited. 
 
 # Appendix
 
