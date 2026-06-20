@@ -24,43 +24,20 @@ lang: en
 bibliography: bibliography.bib
 ---
 
-# Notes from Project Proposal Call
-
-Meteo Daten Stunde vs. Tag --\> ausprobieren
-
-Sample zu klein wahrscheinlich, Stunde sieht man probably mehr Muster andere Studierende?
-
-Map Matching --\> nicht nötig für unser Projekt
-
-Timeline vs. ArcGIS Earth --\> wie kann man das vergleichen? Filter machen für die Abschnitte, bei denen wir die gleichen Informationen haben --\> falls zu aufwändig, dann treffen wir eine pragmatische Entscheidung und halten das so fest (Vereinfachung)
-
-1)  Anschauen, ob man mit Meteodaten (1 Tag) Unterschiede auf dem gesamten Datensatz sieht.
-
--   Zu Beginn explorativ anschauen, ob es Unterschiede gibt von Wochentagen und Wochenenden
-
-2)  Dann genauer schauen mit Meteodaten (1h oder 15min) --\> Temperatur als Feld modellieren, nicht als Voronoi Polygone
-
-3)  Dann noch genauer schauen und zwar nur dort, wo man gelaufen ist.
-
--   gibt es Unterschiede in Laufdistanz oder Laufgeschwindigkeit je nach Temperatur?
-
-4)  Falls man keine krassen Unterschiede sieht --\> zwei Ansätze miteinander vergleichen (z.B. 15min vs. 1h oder 1 Tag) --\> geht um konzeptueller Approach, Ergebnisse sind nicht so relevant
-
-Alternative Datensätze: Tageslicht? Stürme?
-
-Ran Nathan's Movement Ecology Paradigm: wo befinden wir usn mit diesem Project, ist evtl. v.a. bei der Discussion relevant
-
 # Abstract
-Javier
-tbd
+Ensuring safe and efficient pedestrian mobility requires a close understanding of its influencing factors. Weather conditions, particularly precipitation and temperature, are among important external factors affecting walking behaviour. In light of climate change with increasing temperatures and changing variability of precipitation, capturing these effects becomes increasingly important. Based on a case study of Zurich, this study examines how precipitation and temperature (external factors) influence both the spatial mobility extent (navigation capacity) and walking speed (motion capacity).
+
+The results suggest that increasing temperature can lead to higher walking speed, except under very cold conditions. Furthermore, the spatial extent decreases with longer precipitation duration. While the data points are too few to detect significant relationship, this analysis shows initial evidence of weather-related effects on pedestrian mobility and serves as basis for further, more in-depth studies.
 
 # Introduction
 
-@laube2011 investigate how temporal scale affects the calculation of movement parameters (speed, sinuosity and turning angle) of animal trajectories. Also done by @zhao2019 and us.
-
 Since the dawn of human evolution, humans have walked across the surface of the earth. To this day, it is the most essential mode of transport since almost all trips include some part of moving on foot (@giannoulaki2024). Therefore, it is no wonder that pedestrian movement has been studied in depth and the results are used to create appealing and efficient walking infrastructure that also shield these vulnerable people against other, potentially dangerous transport modes. 
 
-One of the most relevant variables when talking about pedestrian movement is movement speed. According to @giannoulaki2024, pedestrian speed depends on five factors: Pedestrian flow characteristics (e.g. density), pedestrian attributes (e.g. age, gender), layout configuration (e.g. inclination of the route), ambient conditions (e.g. weather, noise) and pedestrian behavioural patterns (e.g. using a phone). We will focus on the ambient conditions, more precisely on weather (temperature, precipitation) and its effect on pedestrian movement as well as its effect on mobility pattern in general. 
+One of the most relevant variables when talking about pedestrian movement is movement speed. According to @giannoulaki2024, pedestrian speed depends on five factors: Pedestrian flow characteristics (e.g. density), pedestrian attributes (e.g. age, gender), layout configuration (e.g. inclination of the route), ambient conditions (e.g. weather, noise) and pedestrian behavioural patterns (e.g. using a phone). We will focus on the ambient conditions, more precisely on weather (temperature, precipitation) and its effect on pedestrian movement as well as its effect on mobility pattern in general. As conceptual movement space, we use an unconstrained movement model @laube2009, since we focus on walking mobility that occurs not always on fixed routes.
+
+Following the established framework for context-aware Movement Analysis (CAMA) @nathan2008, we investigate precipitation and temperature effects (external factors) on spatial extent (navigation capacity) and on speed levels (motion capacity). It is important to note that weather as external factor can have a direct effect on motion capacity but also indirect trough navigation capacity. This is more extensively discussed in chapter 4.  
+
+![Adapted framework from @nathan2008](figures/fig1.png){width=300}{fig-align="center"}
 
 Weather conditions can influence both the decision to walk and the way pedestrians move through space. Among the different meteorological variables, precipitation and temperature are particularly relevant due to their direct effects on the walking environment and human comfort. In the northern hemisphere, low temperatures and precipitation are generally associated with poorer conditions for walking, as rain, snow, and ice can reduce pavement quality and require pedestrians to adopt more cautious, hence slower, movement patterns (@montigny2012; @giannoulaki2024). However, the relationship between weather and walking behaviour is complex. While poor conditions may reduce walking speeds due to safety concerns, pedestrians may also increase their speed under unfavourable weather to minimize exposure and reach their destination more quickly (@giannoulaki2024).
 
@@ -69,26 +46,16 @@ Precipitation is one of the strongest determinants of pedestrian activity. Studi
 @rotton1990 found that head causes individuals to walk faster. This influence of temperature on walking speed can also be explained through the Yerkes–Dodson law, where moderate arousal can improve performance, while excessive stress reduces it (U-shaped curve) (@yerkes1908). Warmer temperatures may therefore increase walking speed up to a point, but extreme temperatures can negatively affect speed. Since precipitation and temperature are two of the most influential and measurable weather factors affecting both walking activity and movement characteristics, this project focuses on their impact on pedestrian mobility patterns and walking behaviour.
 
 More precisely, we decided on the following Research Questions (RQ):  
-I) How does temperature affect daily travel distance, speed and sinuousity?  
-II) How does precipitation affect daily travel distance, speed and sinuousity?  
+I) How does temperature affect daily travel distance and speed?  
+II) How does precipitation affect daily travel distance and speed?  
 III) How do temperature and precipitation affect the spatial extent of activity spaces?  
 IV) Do different temporal scales of the weather data matter?  
 
-To answer these questions we tracked ourselves with two different tracking tools. We used ArcGIS Earth, which saves a GPS fix every few seconds, independent of if you are moving or stopping, and saves it to a KML file to answer RQ I and II. We also used Google timeline, which mostly only measures your stop locations and saves it to a JSON file to answer RQ III and IV. 
+To answer these questions, we tracked ourselves with two different tracking tools. We used ArcGIS Earth, which saves a GPS fix every few seconds, independently of movement or non-movement, and saves it to a KML file to answer RQ I and II. We also used Google timeline, which mostly only measures your stop locations and saves it to a JSON file to answer RQ III and IV. 
 
 We let the Google timeline run in the background of our smartphone from 08.03.2026 until 26.04.2026. Since we had to manually start and stop the ArcGIS Earth tracking, we only generated 42 tracks of different length between 13.03.2026 and 25.04.2026. 
 
-
-1.  Study design\
-    • Research questions are clear, appropriate, realistic, addressable\
-    • Are study design choices motivated from the theory CMA?\
-    • Originality? Is it a simple extension of the exercises or are there own ideas?
-
-2.  Argument and Logic\
-    • Students have mastered the theory and use it for their argument, with references\
-    • Students show understanding of theory\
-    • What has been done in terms of literature review?
-
+Since previous research showed the importance and sensitivity of varying scale (@laube2011, @zhao2019), special attention is given to it in this analysis. For the weather station data, we account for the effect of spatial scale selection comparing city-level vs. station-level analysis as well as considering varying temporal scale with daily, hourly and 15min weather data. Thus, we also perform a small cross-scale movement analysis. For the mobility data, we don't include a cross-scale movement analysis, but discuss our choices and parameters extensively.
 
 # Material and Methods
 
@@ -779,7 +746,8 @@ Now we switch from the timeline data to the ArcGIS Earth data, since Google time
 
 ### Segmentation of trajectories (stops and moves)
 
-First we split our trajectories into segments of stops and moves. Since ArcGIS Earth has a very fine sampling rates (seconds) and we sometimes let the tracking run for a whole day, a lot of the fixes are stops and will not be needed for further analysis.  
+First we split our trajectories into segments of stops and moves using a moving window. Since ArcGIS Earth has a very fine sampling rates (seconds) and we sometimes let the tracking run for a whole day, a lot of the fixes are stops and will not be needed for further analysis.  
+Following a similar procedure as in these studies *(Guo et al., 2018)(Bonavita et al., 2022)*, we employed spatial and temporal tresholds to classify movement and non-movement. We classified the segment as "movement" if the distance travelled in 1 timestep was more than 5 meters within a time of 30 seconds. This allows for certain minimal movement, such as being in crowded pedestrian areas, without being automatically being classified as stop.  
 
 ```{r}
 # define function 
@@ -859,6 +827,8 @@ segments <- segments |>
   mutate(type = ifelse(moving_step, "MOVE", "STOP"))
 ```
 
+Here, the stops  (red) and moves (blue) from the trajectories are visualized. Most of the points are movements, indicating that we have enough "movement segments" for further analysis. 
+
 ```{r}
 # visualize stops and moves together with city boundary
 ggplot() +
@@ -875,6 +845,10 @@ ggplot() +
   theme_minimal()
 ```
 
+### Speed exploratory analysis
+
+Since speed is an important variable in our analysis, we inspect the created speed data and remove outliers.
+
 ```{r}
 # distribution of speed to cut boundaries
 quantile(segments$speed_kmh[segments$moving_step],
@@ -890,7 +864,7 @@ segments_trim <- segments |>
   filter(speed_kmh <= upper)
 ```
 
-In the below boxplot one can see the a majority of the fixes have a speed below 20 km/h, indicating a lot of on foot travel or using public transport. 
+As can be seen in the below boxplot, the majority of the fixes have a speed below 20 km/h, indicating high shares of foot travel or slow transport. 
 
 ```{r}
 # boxplot for distribution
@@ -904,7 +878,7 @@ boxplot(
 
 ### Travel Mode Detection - Walking
 
-In transportation planning, free flow pedestrian walking speed is assumed to be between 0.8 m/s and 1.5 m/s or 3 to 7 km/h. In our case, slower walking speeds could be possible since the city of Zurich can be rather densly packed and free flow speed might not be achieved. This is why we extended the lower threshold. 
+In transportation planning, free flow pedestrian walking speed is assumed to be between 0.8 m/s and 1.5 m/s or 3 to 7 km/h. In our case, slower walking speeds could be possible since the city of Zurich can be rather densely packed and free flow speed might not be achieved. This is why we extended the lower threshold. 
 
 ```{r}
 # create only walking segments (speed between 1 and 7 km/h)
@@ -913,6 +887,8 @@ walking_segments <- segments |>
 ```
 
 ### Construct Voronoi Polygons around meteoblue Measuring Stations
+
+To assign each segment the nearest meteoblue measuring station, we construct Voronoi polygons, following the same approach as before.
 
 ```{r}
 # create geometry out of coordinates for meteoblue_stations
@@ -963,6 +939,8 @@ voronoi_weather <- voronoi_clipped_meteoblue |>
   )
 ```
 
+Here, we visualize for validation purposes all voronoi polygons and the corresponding meteoblue stations for the city of Zurich. It shows that this step worked.
+
 ```{r}
 # visualisation
 ggplot() +
@@ -994,6 +972,9 @@ ggplot() +
 ```
 
 ### Assign Segments to Voronoi Polygons
+
+First, we assign each segment to voronoi polygon using a spatial join. Second, we also apply a temporal join to link the weather data of the same date and time as the trajectory. For that, we define a "representative time" for each segment, meaning the midtime (end_time-start_time)/2. The timedifference between each segment and the weather data is computed and the weather entry with the lowest time difference is then selected for matching. Added to this, a treshold of 120min is set, where time differences above it, are automatically excluded for a temporal join.
+Regarding the validation of the temporal join, the median time difference of 3.84 min indicates very high temporal linkage.
 
 ```{r}
 # only look at point instead of segment
@@ -1099,6 +1080,8 @@ summary(segments_weather_clean$time_diff)
 
 ## Analyze effect of Precipitation
 
+To analzye the effect of precipitation on walking speed, we opted for two different spatial and temporal scales of the weather data (small cross-scale analysis (@laube2011)) First, conducted an analysis with weather data on city-level. Second, we applied the same procedure, but with weather data on station-level.
+
 ```{r}
 # clean weather_hourly_df
 rain_hourly_df <- weather_hourly_df |>
@@ -1187,6 +1170,8 @@ segments_weather_rain <- segments_weather_rain |>
     rain_flag = ifelse(Wert > 0, "rain", "no_rain")
   )
 ```
+
+We detected two stations with no precipitation data. 
 
 ```{r}
 # two stations have all NA-values=> no rainfall data collection?
@@ -1425,6 +1410,8 @@ segments_weather_clean <- segments_weather_clean |>
   filter(!is.na(temp_group))
 ```
 
+However, if we classify the segments into different temperature groups, a clear difference between the groups is visible. In general, higher temperatures are associated with lower walking speed, from 4.8km/h for cool temperatures to almost 4km/h for warm temperatures, except for very cold temperatures, where also slow walking speeds are identified.
+
 ```{r}
 # visualize
 ggplot(segments_weather_clean, aes(x = temp_group, y = speed_kmh)) +
@@ -1438,6 +1425,8 @@ ggplot(segments_weather_clean, aes(x = temp_group, y = speed_kmh)) +
 ```
 
 ### A) City-level Analysis
+
+Based on the city-level weather data, we clearly see that with increasing rain duration, walking speed is reduced. 
 
 ```{r}
 # visualize
@@ -1454,6 +1443,8 @@ ggplot(analysis_city, aes(rain, speed_kmh)) +
 
 ### B) Station-level Analysis
 
+Similarly to the city-level data, a negative trend is visible. However, with station-level weather data this trend is more pronounced, where with high precipitation duration walking speeds are below 3km/h.
+
 ```{r}
 # visualize
 ggplot(analysis_station, aes(Wert, speed_kmh)) +
@@ -1467,10 +1458,13 @@ ggplot(analysis_station, aes(Wert, speed_kmh)) +
   )
 ```
 
+The relationship between speed and rain is also tested using a wilcox test. With a p-value of 0.2229, no significant relationship can be found.
+
 ```{r}
 # test if significant relationship
 wilcox.test(speed_kmh ~ rain_flag, data = analysis_data)
 ```
+
 
 ```{r}
 # see if relationship
@@ -1515,8 +1509,42 @@ ggplot(analysis_data, aes(Wert, speed_kmh)) +
 -   Are problems that showed up been reported and alternative solutions proposed?  
 -   Have data science choices been discussed in the light of the theory?  
 
+## R1: How does temperature affect daily travel distance and speed?  
 
-Other influencing factors:  
+### A) Temperature and daily travel distance
+
+
+### B) Temperature and speed
+On the first sight, it seems that there is no relationship between temperature and walking speed. However, when dividing the segments into temperature groups, clear differences become visible. In general, higher temperatures are associated with lower walking speed, from 4.8km/h for cool temperatures to almost 4km/h for warm temperatures except for very cold temperatures, where also slow walking speeds are identified. Since the coldest temperatures are close to zero, a possible explanation for the low speed with cold temperatures is the increased caution and thus reduced velocity due to an elevated danger of slipping. These patterns are in line with previous research, which highlighted a certain increase in walking with higher temperatures, while very cold conditions could lead to slower speeds (@montigny2012; @giannoulaki2024), as type of u-shaped curve (@yerkes1908). However, the relationship did not prove to be significant, which is likely due to the small set of trajectories.
+
+
+## R2: How does precipitation affect daily travel distance and speed? 
+### A) Daily travel distance and speed
+
+
+### B)Precipitation and speed
+Contrary to our expectations, increasing precipitation duration is associated with lower walking velocity. We hypothesized similarly to @giannoulaki2024 that pedestrians would increase their speed under unfavourable weather to minimize exposure. However, other studies argue that precipitation reduces similarly to snow pavement quality and thus implies slower movement patterns. (@montigny2012; @giannoulaki2024). Overall, due to the very small amount of rain data caused by dry months and two stations not collecting any rain data, this part of the research question can not be adequately answered.
+
+## R3: How do temperature and precipitation affect the spatial extent of activity spaces?
+
+
+## R4: Do different temporal and spatial scales of the weather data matter? 
+
+### A) Temporal scales of weather data
+
+
+### B) spatial scales of weather data
+The comparison between the analysis with city-level and with station-level weather data, revelead that it can have an effect on the quantification of the relationship. Although in both cases a negative relationship between precipitation and walking speed was identified, the station-level analysis showed a more clear trend. This can be likely explained by closer matching of weather stations to a certain segment.
+
+## Limitations
+
+This analysis has various limitations. 
+First, the classification of segments with static thresholds into movement vs. non-movement  is frequent, but recent research has shows, that the selection of static thresholds is often not adequate and makes no distinction between different use cases. The proposed alternative would be a more flexible and user-adapted approach, which however is out of scope for this project (Bonavita et al., 2022).
+
+Second, the low amount of trajectory and weather data means that our findings need to be interpreted with caution. This is especially the case for the analysis with precipitation data, as very few entries were available due to unusual dry conditions. Thus, the conducted tests and regression analysis have very limited power
+
+Third, many other influencing factors such as trip purpose were not considered in this analysis.
+
 -	"All trips have associated imperatives, which make them more or less likely to change in adverse weather conditions" --> trip purpose might have a very strong influence --> look at weekdays and weekends separately (@montigny2012)  
 -	most walking activity is driven by daily routine and imperatives (=trip purpose) (@montigny2012)  
 
@@ -1531,12 +1559,27 @@ Other influencing factors:
 -	rainfall 3 h earlier, suggesting a delay effect of rainfall on cycling, suggest that when it rains, its negative impact not only continues, but it could also be “anticipated” by active travellers. (@zhao2019)
 
 
-Data Quality:  
--   the Google timeline data mostly records stops --> we could have switched to SDE to also model our movement in between those fixes.  
+Fourth, regarding data quality, the Google timeline data mostly records stops. We could have switched to SDE to also model our movement in between those fixes.  
 -   aspace::calc_sde (https://www.rdocumentation.org/packages/aspace/versions/4.1.1/topics/calc_sde)  
 -   sfdep::std_dev_ellipse (https://cran.rstudio.com/web/packages/sfdep/sfdep.pdf)  
   
-Concave Hulls: we only calculated it per day, even when the weather data was 1h or 15min --> this was to show that granularity matters (RQ4)
+Also, Concave Hulls: we only calculated it per day, even when the weather data was 1h or 15min --> this was to show that granularity matters (RQ4)
+
+We focused on conceptual approach. 
+
+Alterantive datasets: daylight, storms  
+comparing weekdays vs. weekends
+Timeline vs. ArcGIS Earth --\> wie kann man das vergleichen? Filter machen für die Abschnitte, bei denen wir die gleichen Informationen haben --\> falls zu aufwändig, dann treffen wir eine pragmatische Entscheidung und halten das so fest (Vereinfachung)
+more students!!
+
+# Conclusion
+
+This study shows how precipitation and temperature (external factors) influence both the spatial mobility extent (navigation capacity) and walking speed (motion capacity).
+The results suggest that increasing temperature can lead to higher walking speed, except under very cold conditions. Furthermore, the spatial extent decreases with longer precipitation duration. While the data points are too few to detect significant relationship, this analysis shows initial evidence of weather-related effects on pedestrian mobility and serves as basis for further, more in-depth studies.
+
+# AI Statement
+
+LLMs were used to improve grammar as well as creating and debugging code in this project, especially for content and challenges that go beyond the scope of the course. All content, analysis, and arguments remain the author’s own, and any information derived from external sources is properly cited. 
 
 # Appendix
 
