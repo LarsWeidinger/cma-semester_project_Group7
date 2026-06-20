@@ -33,29 +33,25 @@ The results suggest that increasing temperature can lead to higher walking speed
 
 Since the dawn of human evolution, humans have walked across the surface of the earth. To this day, it is the most essential mode of transport since almost all trips include some part of moving on foot (@giannoulaki2024). Therefore, it is no wonder that pedestrian movement has been studied in depth and the results are used to create appealing and efficient walking infrastructure that also shield these vulnerable people against other, potentially dangerous transport modes. 
 
-One of the most relevant variables when talking about pedestrian movement is movement speed. According to @giannoulaki2024, pedestrian speed depends on five factors: Pedestrian flow characteristics (e.g. density), pedestrian attributes (e.g. age, gender), layout configuration (e.g. inclination of the route), ambient conditions (e.g. weather, noise) and pedestrian behavioural patterns (e.g. using a phone). We will focus on the ambient conditions, more precisely on weather (temperature, precipitation) and its effect on pedestrian movement as well as its effect on mobility pattern in general. As conceptual movement space, we use an unconstrained movement model @laube2009, since we focus on walking mobility that occurs not always on fixed routes.
+One of the most relevant variables when talking about pedestrian movement is movement speed. According to @giannoulaki2024, pedestrian speed depends on five factors: Pedestrian flow characteristics (e.g. density), pedestrian attributes (e.g. age, gender), layout configuration (e.g. inclination), ambient conditions (e.g. weather, noise) and pedestrian behavioural patterns (e.g. using a phone). We will focus on the ambient conditions, more precisely on weather (temperature, precipitation) and its effect on pedestrian movement as well as its effect on mobility pattern in general. As conceptual movement space, we use an unconstrained movement model @laube2009, since we focus on walking mobility that occurs not always on fixed routes.
 
-Following the established framework for context-aware Movement Analysis (CAMA) @nathan2008, we investigate precipitation and temperature effects (external factors) on spatial extent (navigation capacity) and on speed levels (motion capacity). It is important to note that weather as external factor can have a direct effect on motion capacity but also indirect trough navigation capacity. This is more extensively discussed in chapter 4.  
+Following the established framework for context-aware Movement Analysis (CAMA) @nathan2008, we investigate precipitation and temperature effects (external factors) on spatial extent (navigation capacity) and on speed levels (motion capacity). It is important to note that weather as external factor can have a direct effect on motion capacity but also indirect trough navigation capacity.
 
 ![Adapted framework from @nathan2008](figures/fig1.png){width=300}
 
-Weather conditions can influence both the decision to walk and the way pedestrians move through space. Among the different meteorological variables, precipitation and temperature are particularly relevant due to their direct effects on the walking environment and human comfort. In the northern hemisphere, low temperatures and precipitation are generally associated with poorer conditions for walking, as rain, snow, and ice can reduce pavement quality and require pedestrians to adopt more cautious, hence slower, movement patterns (@montigny2012; @giannoulaki2024). However, the relationship between weather and walking behaviour is complex. While poor conditions may reduce walking speeds due to safety concerns, pedestrians may also increase their speed under unfavourable weather to minimize exposure and reach their destination more quickly (@giannoulaki2024).
+Weather conditions can influence both the decision to walk and the way pedestrians move through space. Among the different meteorological variables, precipitation and temperature are particularly relevant due to their direct effects on the walking environment and human comfort. In the northern hemisphere, low temperatures and precipitation are generally associated with poorer conditions for walking, as rain, snow, and ice can reduce pavement quality and require pedestrians to adopt more cautious, hence slower, movement patterns (@montigny2012; @giannoulaki2024). However, the relationship between weather and walking behaviour is complex. While poor conditions may reduce walking speeds due to safety concerns, pedestrians may also increase their speed under unfavourable weather to minimize exposure and reach their destination more quickly (@giannoulaki2024). Warmer temperatures up to a certain threshold can encourage walking, while higher temperatures (23°C or more) may lead pedestrians to seek shade and alter their routes (@montigny2012). However, walking may also serve as a heat-production mechanism under colder conditions, resulting in faster walking speeds during winter or in cooler climates (@obuchi2021).
 
-Precipitation is one of the strongest determinants of pedestrian activity. Studies have shown that rainfall significantly reduces pedestrian traffic (@zhao2019). Furthermore, the effect of precipitation extends beyond the immediate weather event, as travellers may anticipate rainfall and adjust their mobility decisions in advance (@zhao2019). Temperature, on the other hand, influences pedestrian behaviour through both physiological and behavioural mechanisms. Warmer temperatures up to a certain threshold can encourage walking, while higher temperatures (23°C or more) may lead pedestrians to seek shade and alter their routes, leading to potentially higher sinuosity and slower speeds (@montigny2012). However, walking may also serve as a heat-production mechanism under colder conditions, resulting in faster walking speeds during winter or in cooler climates (@obuchi2021).
+@rotton1990 found that head causes individuals to walk faster. This influence of temperature on walking speed can also be explained through the Yerkes–Dodson law, where moderate arousal can improve performance, while excessive stress reduces it (U-shaped curve) (@yerkes1908). Warmer temperatures may therefore increase walking speed up to a point, but extreme temperatures can negatively affect speed. 
 
-@rotton1990 found that head causes individuals to walk faster. This influence of temperature on walking speed can also be explained through the Yerkes–Dodson law, where moderate arousal can improve performance, while excessive stress reduces it (U-shaped curve) (@yerkes1908). Warmer temperatures may therefore increase walking speed up to a point, but extreme temperatures can negatively affect speed. Since precipitation and temperature are two of the most influential and measurable weather factors affecting both walking activity and movement characteristics, this project focuses on their impact on pedestrian mobility patterns and walking behaviour.
+Precipitation is one of the strongest determinants of pedestrian activity. Studies have shown that rainfall significantly reduces pedestrian traffic (@zhao2019). Furthermore, the effect of precipitation extends beyond the immediate weather event, as travellers may anticipate rainfall and adjust their mobility decisions in advance (@zhao2019). 
 
-More precisely, we decided on the following Research Questions (RQ):  
+This project focuses on the impact of temperature and precipitation on pedestrian mobility patterns and walking behaviour. More precisely, we decided on the following Research Questions (RQ):  
 I) How does temperature affect walking speed?  
 II) How does precipitation affect walking speed?  
 III) How do temperature and precipitation affect the spatial extent of activity spaces?  
 IV) Do different temporal scales of the weather data matter?  
 
-To answer these questions, we tracked ourselves with two different tracking tools. We used ArcGIS Earth, which saves a GPS fix every few seconds, independently of movement or non-movement, and saves it to a KML file to answer RQ I and II. We also used Google timeline, which mostly only measures your stop locations and saves it to a JSON file to answer RQ III and IV. 
-
-We let the Google timeline run in the background of our smartphone from 08.03.2026 until 26.04.2026. Since we had to manually start and stop the ArcGIS Earth tracking, we only generated 42 tracks of different length between 13.03.2026 and 25.04.2026. 
-
-Since previous research showed the importance and sensitivity of varying scale (@laube2011, @zhao2019), special attention is given to it in this analysis. For the weather station data, we account for the effect of spatial scale selection comparing city-level vs. station-level analysis as well as considering varying temporal scale with daily, hourly and 15min weather data. Thus, we also perform a small cross-scale movement analysis. For the mobility data, we don't include a cross-scale movement analysis, but discuss our choices and parameters extensively.
+Since previous research showed the importance and sensitivity of varying scale (@laube2011, @zhao2019), special attention is given to it in this analysis. For the weather station data, we account for the effect of spatial scale selection comparing city-level vs. station-level analysis as well as considering varying temporal scale with daily, hourly and 15 min weather data. Thus, we also perform a small cross-scale movement analysis. For the mobility data, we don't include a cross-scale movement analysis, but discuss our choices and parameters extensively.
 
 # Material and Methods
 
@@ -87,37 +83,27 @@ pacman::p_load(here,
 
 ```
 
-## Set CRS
-
-```{r}
-crs_lv95  <- 2056
-crs_wgs84 <- 4326
-```
-
 ## Import & Preprocess Data
 
 ```{r preprocessing}
 #| code-summary: preprocessing
 source("preprocessing.R") # this runs the whole preprocessing file
+
+# See the preprocessing.R file where we import:
+# - weather data (weather_daily_df, weather_hourly_df, meteoblue_weather_data)
+# - weather station location data (weather_stations_sf, meteoblue_stations)
+# - tracking data (google_timeline_sf_lv95)
+# - city boundary data (stadtgrenze)
+
+# set CRS
+crs_lv95  <- 2056
+crs_wgs84 <- 4326
 ```
 
-See the preprocessing.R file where we import:  
 
--   weather data (weather_daily_df, weather_hourly_df, meteoblue_weather_data)
+## Weather Daily (Voronoi Polygon)
 
--   weather station location data (weather_stations_sf, meteoblue_stations)
-
--   tracking data (google_timeline_sf_lv95)
-
--   city boundary data (stadtgrenze)
-
-## Weather Data Daily (Voronoi Polygon)
-
-For our weather data we used a dataset by the city of Zurich that provides aggregated weather data (temperature [°C] and rain duration [min]) per day. The dataset is updated every day and we import the whole year and later only use the information that corresponds to our tracking data. 
-
-### Locating Weather Stations
-
-In the provided metadata JSON file the location of the weather stations can be found. We imported and cleaned the metadata in the preprocessing file. In the below plot you can see the distribution of the stations across the city of Zurich. 
+### Weather Stations
 
 ```{r}
 ggplot() +
@@ -143,7 +129,7 @@ ggplot() +
     )
 ```
 
-### Constrcut Voronoi Polygons around Measuring Stations
+### Construct Voronoi Polygons around Stations
 
 Since we need to assign the weather data to our GPS fixes and later our segments we need to relate the two datasets spatially. For that, we construct Voronoi polygons around the measuring stations. Later we can then assign each Google timeline fix the weather values from the station it is closest to (= inside the Voronoi polygon). This method is rather simple but very effective.
 
@@ -196,12 +182,11 @@ ggplot() +
     )
 ```
 
-### Assign Google Timeline Data to Voronoi Polygons
-
-We can now use a spatial join to assign the corresponding weather station to each of the Google timeline fixes. \
-Since we traveled quite a lot outside of the city of Zurich, we omit the data outside the city (NA values), which is approximately 60% of the data points.
+### Assign Google Timeline to Voronoi Polygons
 
 ```{r}
+# We can now use a spatial join to assign the corresponding weather station to each of the Google timeline fixes.
+
 # both datasets are in CH1903+
 
 # spatial join: assign polygon attributes (ID) to points
@@ -210,6 +195,8 @@ google_timeline_sf_lv95 <- st_join(
   voronoi_clipped["ID"],
   join = st_within) |>
   
+  # Since we traveled quite a lot outside of the city of Zurich, we omit the data
+  # outside the city (NA values), which is approximately 60% of the data points.
   drop_na() # omit NA values (quite a lot of them)
 ```
 
@@ -240,11 +227,11 @@ ggplot() +
     )
 ```
 
-### Assign Weather Data to Google Timeline Data
-
-Now that we have assigned each data point to its closest weather station, we need to assign them their relevant weather values. We decided on using temperature (T) and rain (RainDur). One problem is, that the station Heubeeribüel does not collect RainDur information.
+### Assign Weather Data to Google Timeline
 
 ```{r}
+# Now that we have assigned each data point to its closest weather station, we need to assign them their relevant weather values. We decided on using temperature (T) and rain (RainDur). One problem is, that the station Heubeeribüel does not collect RainDur information.
+
 # based on the exercises of week 5, Task 3 ff we first create a join key so that we can later match them exactly
 
 google_timeline_sf_lv95 <- google_timeline_sf_lv95 |>
@@ -318,9 +305,9 @@ As an alternative, we could have used the Standard Devitational Ellipse (SDE), w
 
 ### Construct Concave Hulls
 
-In the first approach we called concaveman() on the entire sfc column (all geometries at once), not on each row individually. It computed one hull over all points and that same result gets recycled into every row which resulted in all the hulls being the same. We asked Claude AI (Model Sonnet 4.6) for help and it delivered the following solution using lapply.
-
 ```{r}
+# In the first approach we called concaveman() on the entire sfc column (all geometries at once), not on each row individually. It computed one hull over all points and that same result gets recycled into every row which resulted in all the hulls being the same. We asked Claude AI (Model Sonnet 4.6) for help and it delivered the following solution using lapply.
+
 # Step 1: union points by date
 google_timeline_hulls <- google_timeline_sf_lv95 |>
   group_by(Date) |>
@@ -399,8 +386,6 @@ daily_hulls_weather <- google_timeline_hulls |>
   left_join(daily_weather, by = "Date")
 ```
 
-For visualisation purpose we show four random concave hulls. As can be seen in the below visualisation, the temperature assignment worked.
-
 ```{r}
 # visualise concave hulls with weather data
 ggplot() +
@@ -411,7 +396,7 @@ ggplot() +
   scale_fill_gradient2(low = "blue", mid = "white", high = "red", midpoint = 0, name = "Temperature [°C]") +
   
   labs(
-    title = "Concave Hulls of Daily Movement in Zurich",
+    title = "Four Random Concave Hulls of Daily Movement in Zurich",
     color = "Temperature",
     x = "Easting [m]",
     y = "Northing [m]") +
@@ -430,13 +415,14 @@ ggplot() +
 ## Weather Daily (Field)
 
 We only have weather measurements at at a handful of stations across the city. Assigning each location fix the weather data of the Voronoi polygon of the station it is in, is simplistic. Weather changes somewhat gradually across space, a more "fluid" approach would be better. That is why we decided on using Inverse Distance Weighting (IDW), which is a simple approach to generate gradually changing values across space using some sort of tessellation.\
-With only few stations the interpolation accuracy will be low. We are not capturing real microclimate variation like urban heat island effects or cooling green spaces and water bodies. But since we plan on repeating our method with the finer scaled Meteoblue stations, we decided on applying the IDW method.
-
-Since we do not want to compute a full raster for every day we will do a point-wise IDW prediction directly at each location fix's coordinates, using all weather station information. A raster per timestamp needs a lot of computation time and we only need the value at the fix's exact coordinates. Point-wise IDW is just a weighted average of all the distance, which takes much less time and we avoid avoid having to manage hundreds of rasters.
 
 ### Inverse Distance Weighting (IDW)
 
 ```{r}
+# With only few stations the interpolation accuracy will be low. We are not capturing real microclimate variation like urban heat island effects or cooling green spaces and water bodies. But since we plan on repeating our method with the finer scaled Meteoblue stations, we decided on applying the IDW method.
+
+# Since we do not want to compute a full raster for every day we will do a point-wise IDW prediction directly at each location fix's coordinates, using all weather station information. A raster per timestamp needs a lot of computation time and we only need the value at the fix's exact coordinates. Point-wise IDW is just a weighted average of all the distance, which takes much less time and we avoid avoid having to manage hundreds of rasters.
+
 # this code chunk was constructed with the help of Claude (Sonnet 4.6)
 
 idw_for_date <- function(fixes_date, stations_date, power = 2) {
@@ -645,9 +631,9 @@ Again, we will use the concave hulls per day, since we are interested in the eff
 
 ### Prepare Weather Data
 
-The meteoblue weather data is already in a wide format, therefore we do not need to change anything there.
-
 ```{r}
+# the meteoblue weather data is already in a wide format, therefore we do not need to change anything there.
+
 google_timeline_sf_lv95 <- google_timeline_sf_lv95 |>
   mutate(
     QuarterHour = floor_date(time, unit = "15 min")
@@ -656,9 +642,9 @@ google_timeline_sf_lv95 <- google_timeline_sf_lv95 |>
 
 ### Inverse Distance Weighting (IDW)
 
-If we would repeat the same code as earlier the runtime would increase significantly. Instead of hourly measurement of four stations we have 15 min measurements of 93 stations. That is why we adapted the code slightly. 
-
 ```{r}
+# If we would repeat the same code as earlier the runtime would increase significantly. Instead of hourly measurement of four stations we have 15 min measurements of 93 stations. That is why we adapted the code slightly. 
+
 # we move the station preparation outside the loop --> so it does not get repeated all the time
 meteoblue_weather_data_join <- meteoblue_weather_data |>
   left_join(
@@ -750,7 +736,7 @@ quarter_hourly_hulls_weather_field_join <- quarter_hourly_hulls_weather_field |>
 
 Now we switch from the timeline data to the ArcGIS Earth data, since Google timeline does not allow for precise movement parameter calculations due to the coarse sampling rate. 
 
-### Segmentation of trajectories (stops and moves)
+### Segmentation of trajectories
 
 First we split our trajectories into segments of stops and moves using a moving window. Since ArcGIS Earth has a very fine sampling rates (seconds) and we sometimes let the tracking run for a whole day, a lot of the fixes are stops and will not be needed for further analysis.  
 Following a similar procedure as in these studies *(Guo et al., 2018)(Bonavita et al., 2022)*, we employed spatial and temporal tresholds to classify movement and non-movement. We classified the segment as "movement" if the distance travelled in 1 timestep was more than 5 meters within a time of 30 seconds. This allows for certain minimal movement, such as being in crowded pedestrian areas, without being automatically being classified as stop.  
@@ -833,11 +819,9 @@ segments <- segments |>
   mutate(type = ifelse(moving_step, "MOVE", "STOP"))
 ```
 
-Here, the stops  (red) and moves (blue) from the trajectories are visualized. Most of the points are movements, indicating that we have enough "movement segments" for further analysis. 
-
 ::: {.panel-tabset .nav-pills}
 
-#### All stops and moves
+#### All
 
 ```{r}
 # visualize stops and moves together with city boundary
@@ -867,7 +851,7 @@ ggplot() +
     )
 ```
 
-#### Zurich stops and moves
+#### Zurich
 
 ```{r}
 # visualize stops and moves inside Zurich together with city boundary
@@ -901,9 +885,7 @@ ggplot() +
 
 :::
 
-### Speed exploratory analysis
-
-Since speed is an important variable in our analysis, we inspect the created speed data and remove outliers.
+### Speed Exploratory Analysis
 
 ```{r}
 # distribution of speed to cut boundaries
@@ -960,11 +942,11 @@ walking_segments <- segments |>
   filter(segments$speed_kmh < 7 & segments$speed_kmh > 1 )
 ```
 
-### Construct Voronoi Polygons around meteoblue Measuring Stations
-
-To assign each segment the nearest meteoblue measuring station, we construct Voronoi polygons, following the same approach as before.
+### Construct Voronoi Polygons around meteoblue Stations
 
 ```{r}
+# To assign each segment the nearest meteoblue measuring station, we construct Voronoi polygons, following the same approach as before.
+
 # create geometry out of coordinates for meteoblue_stations
 meteoblue_sf <- meteoblue_stations |> 
   st_as_sf(coords=c("lonDecimal", "latDecimal"), crs = crs_wgs84)
@@ -1012,8 +994,6 @@ voronoi_weather <- voronoi_clipped_meteoblue |>
     by = "locationID"
   )
 ```
-
-Here, we visualize for validation purposes all voronoi polygons and the corresponding meteoblue stations for the city of Zurich. It shows that this step worked.
 
 ```{r}
 # visualisation
@@ -1181,9 +1161,9 @@ walking_segments <- walking_segments |>
 
 ### A) City-level Analysis
 
-We decided on using the hourly weather data since it resembles reality closer than daily weather data. 
-
 ```{r}
+# We decided on using the hourly weather data since it resembles reality closer than daily weather data. 
+
 # timestamp set as datetime object
 rain_city_hourly <- weather_hourly_df |>
   filter(Parameter == "RainDur") |>
@@ -1253,8 +1233,6 @@ segments_weather_rain <- segments_weather_rain |>
     rain_flag = ifelse(Wert > 0, "rain", "no_rain")
   )
 ```
-
-We detected two stations with no precipitation data. 
 
 ```{r}
 # two stations have all NA-values => no rainfall data collection
@@ -1770,23 +1748,22 @@ Using our last model, lm4, with the 15 min temperature measurements and hourly p
 
 ## RQ4: Do different temporal and spatial scales of the weather data matter? 
 
-### A) Temporal Scales of Weather Data
+### A) Temporal
 The results demonstrate that weather data resolution is crucial, as hourly and 15 min measurements better capture actual movement conditions than daily averages. The explanatory power of the models increases as the temporal resolution becomes finer (daily --> hourly --> 15 min). Daily aggregated weather data shows weak and mostly non-significant relationships, suggesting that coarse temporal averages fail to capture the actual weather conditions experienced during movement.
 
-Hourly data improved our model performances and revealed a statistically significant negative effect of precipitation. The strongest results are obtained at the 15 min scale (lm4). This model achieves the highest explanatory power and statistical significance which confirms our hypothesis that finer temporal scale improves the detection of weather effects. Overall, our results demonstrate that temporal scale is an important factor when analysing the effect of weather on human mobility, with higher-resolution data providing more accurate and behaviourally meaningful results.
+Hourly data improved our model performances and revealed a statistically significant negative effect of precipitation. The strongest results are obtained at the 15 min scale (lm4). This model achieves the highest explanatory power and statistical significance which confirms our hypothesis that finer temporal scale improves the detection of weather effects. 
 
-### B) Spatial Scales of Weather Data
+### B) Spatial
 The comparison between the analysis with city-level and with station-level weather data, revealed that it can have an effect on the quantification of the relationship. Although in both cases a negative relationship between precipitation and walking speed was identified, the station-level analysis showed a more clear trend. This can be likely explained by closer matching of weather stations to a certain segment.  
 
 ## Limitations
-This analysis has various limitations. 
-First, the classification of segments with static thresholds into movement vs. non-movement  is frequent, but recent research has shows, that the selection of static thresholds is often not adequate and makes no distinction between different use cases. The proposed alternative would be a more flexible and user-adapted approach, which however is out of scope for this project (Bonavita et al., 2022).
+This analysis has various limitations. First, the classification of segments with static thresholds into movement vs. non-movement  is frequent, but recent research has shows, that the selection of static thresholds is often not adequate and makes no distinction between different use cases. The proposed alternative would be a more flexible and user-adapted approach, which however is out of scope for this project (Bonavita et al., 2022).
 
 Second, the low amount of trajectory and weather data means that our findings need to be interpreted with caution. This is especially the case for the analysis with precipitation data, as very few entries were available due to unusual dry conditions. Thus, the conducted tests and regression analysis have very limited power
 
 Third, important behavioural and environmental factors were not included. Trip purpose is likely a major determinant of mobility patterns, as walking behaviour is strongly driven by daily routines and situational needs (@montigny2012). Additional influences such as sunlight, storms, weather complexity and urban context may also affect walking speed and behaviour (@giannoulaki2024; @rotton1990; @obuchi2021). Moreover, precipitation effects may vary over time, including delayed or anticipatory responses (@zhao2019).
 
-Fourth, data limitations remain in the movement representation itself, as Google timeline primarily records stops and alternative approaches such as SDE or standard deviational ellipses could have provided a more continuous representation of movement. Additionally, concave hulls were calculated at daily scale only, even when weather data was available at finer resolutions, but this was a necessary simplification to maintain comparability across analyses. Also, rain duration does not capture rain intensity, which arguably might be even more important. Finally, we introduced a bias when we filtered our movements to the city of Zurich because when the weather is nice, we might have even moved out of the canton, increasing our movement space.
+Fourth, data limitations remain in the movement representation itself, as noted in Methods (SDE). Additionally, concave hulls were calculated at daily scale only, even when weather data was available at finer resolutions, but this was a necessary simplification to maintain comparability across analyses. Also, rain duration does not capture rain intensity, which arguably might be even more important. Finally, we introduced a bias when we filtered our movements to the city of Zurich because when the weather is nice, we might have even moved out of the canton, increasing our movement space.
 
 # AI Statement
 
@@ -1802,3 +1779,4 @@ LLMs were used to improve the structure of sentences and grammar as well as crea
 wordcountaddin::word_count("index.qmd") # counts words
 wordcountaddin::text_stats("index.qmd") # counts characters
 ```
+
