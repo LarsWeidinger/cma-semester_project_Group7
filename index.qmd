@@ -28,7 +28,7 @@ bibliography: bibliography.bib
 
 Ensuring safe and efficient pedestrian mobility requires a close understanding of its influencing factors. Weather conditions, particularly precipitation and temperature, are among important external factors affecting walking behaviour. In light of climate change with increasing temperatures and changing variability of precipitation, capturing these effects becomes increasingly important. Based on a case study of Zurich, this study examines how precipitation and temperature (external factors) influence both the spatial mobility extent (navigation capacity) and walking speed (motion capacity).
 
-The results suggest that increasing temperature can lead to higher walking speed, except under very cold conditions. Furthermore, the spatial extent decreases with longer precipitation duration. While the data points are too few to detect significant relationship, this analysis shows initial evidence of weather-related effects on pedestrian mobility and serves as basis for further, more in-depth studies.
+The results suggest that increasing temperature can lead to higher walking speed, except under very cold conditions. Furthermore, the spatial extent decreases with longer precipitation duration. While the data points are too few to detect significant relationships, this analysis shows initial evidence of weather-related effects on pedestrian mobility and serves as basis for further, more in-depth studies.
 
 # Introduction
 
@@ -295,9 +295,9 @@ ggplot() +
 
 ## Visualise Activity Space (Concave Hulls)
 
-To answer RQ II we need to construct some sort of measurement for activity space. We decided on constructing concave hulls around the trips for each day. We then can calculate the area of these hulls, take the average weather values across the whole hull and analyse if the area is larger when temperature is higher or rain duration is lower.
+To answer RQ II we need to construct some sort of measurement for activity space. We decided on constructing concave hulls around the trips for each day. We then calculate the area of these hulls, take the average weather values across the whole hull and analyse if the area is larger when temperature is higher or rain duration is lower.
 
-We decided to use concave hulls rather than convex hulls since they are less prone to outliers. Even though there are some convex hull implementations that allow for some sort of variable to be manipulated in order to exclude outliers (e.g. adehabitatHR::mcp()), the concave hull is more suited for our use case. We could have also used Alpha shapes (alphahull::) which accounts for holes in our data but this is not needed since we are dealing with continuous travel data (@weibel2024).
+We decided to use concave hulls rather than convex hulls since they are less prone to outliers. Even though there are some convex hull implementations that allow for certain variables to be manipulated in order to exclude outliers (e.g. adehabitatHR::mcp()), the concave hull is more suited for our use case. We could have also used Alpha shapes (alphahull::) which accounts for holes in our data but this is not needed since we are dealing with continuous travel data (@weibel2024).
 
 As an alternative, we could have used the Standard Devitational Ellipse (SDE), which forms a closed shape that while representing distributional properties of the point set it does not enclose all points. This would have been potentially more fitting, since the Google timeline data does not capture the movement between fixes, therefore single fixes could distort the concave hulls.
 
@@ -412,7 +412,7 @@ ggplot() +
 
 ## Weather Daily (Field)
 
-We only have weather measurements at at a handful of stations across the city. Assigning each location fix the weather data of the Voronoi polygon of the station it is in, is simplistic. Weather changes somewhat gradually across space, a more "fluid" approach would be better. That is why we decided on using Inverse Distance Weighting (IDW), which is a simple approach to generate gradually changing values across space using some sort of tessellation.\
+We only have weather measurements at at a handful of stations across the city. Assigning each location fix the weather data of the Voronoi polygon of the station is simplistic. Weather changes rather gradually across space, a more "fluid" approach would be better. That is why we decided on using Inverse Distance Weighting (IDW), which is a simple approach to generate gradually changing values across space using some sort of tessellation.\
 
 ### Inverse Distance Weighting (IDW)
 
@@ -737,7 +737,7 @@ Now we switch from the timeline data to the ArcGIS Earth data, since Google time
 ### Segmentation of trajectories
 
 First we split our trajectories into segments of stops and moves using a moving window. Since ArcGIS Earth has a very fine sampling rates (seconds) and we sometimes let the tracking run for a whole day, a lot of the fixes are stops and will not be needed for further analysis.\
-Following a similar procedure as in these studies *(Guo et al., 2018)(Bonavita et al., 2022)*, we employed spatial and temporal tresholds to classify movement and non-movement. We classified the segment as "movement" if the distance travelled in 1 timestep was more than 5 meters within a time of 30 seconds. This allows for certain minimal movement, such as being in crowded pedestrian areas, without being automatically being classified as stop.
+Following a similar procedure as in these studies (@guo2018)(@bonavita2022), we employed spatial and temporal tresholds to classify movement and non-movement. We classified the segment as "movement" if the distance travelled in 1 timestep was more than 5 meters within a time of 30 seconds. This allows for certain minimal movement, such as being in crowded pedestrian areas, without being automatically being classified as stop.
 
 ```{r}
 # define function 
@@ -770,7 +770,7 @@ tracks_lv95 <- tracks_lv95 |>
 ```
 
 ```{r}
-# define threshold of moving window, movement if distance of 1 step more than 5 meters in a time of less than 30 seconds, based on literature?
+# define threshold of moving window, movement if distance of 1 step more than 5 meters in a time of less than 30 seconds
 tracks_lv95 <- tracks_lv95 |>
   mutate(
     moving_step = step_dist > 5 & step_time < 30
@@ -1024,7 +1024,7 @@ ggplot() +
 
 ### Assign Segments to Voronoi Polygons
 
-First, we assign each segment to voronoi polygon using a spatial join. Second, we also apply a temporal join to link the weather data of the same date and time as the trajectory. For that, we define a "representative time" for each segment, meaning the midtime (end_time-start_time)/2. The timedifference between each segment and the weather data is computed and the weather entry with the lowest time difference is then selected for matching. Added to this, a threshold of 120min is set, where time differences above it, are automatically excluded for a temporal join. Regarding the validation of the temporal join, the median time difference of 3.84 min indicates very high temporal linkage.
+First, we assign each segment to voronoi polygon using a spatial join. Second, we also apply a temporal join to link the weather data of the same date and time as the trajectory. For that, we define a "representative time" for each segment, meaning the midtime (end_time-start_time)/2. The time difference between each segment and the weather data is computed and the weather entry with the lowest time difference is then selected for matching. Added to this, a threshold of 120 minutes is set, where time differences above it, are automatically excluded for a temporal join. Regarding the validation of the temporal join, the median time difference of 3.84 min indicates very high temporal linkage.
 
 ```{r}
 # only look at point instead of segment
@@ -1136,7 +1136,7 @@ segments_weather_clean <- segments_weather |>
 
 ## Analyze effect of Precipitation
 
-To analzye the effect of precipitation on walking speed, we opted for two different spatial and temporal scales of the weather data (small cross-scale analysis (@laube2011)) First, conducted an analysis with weather data on city-level. Second, we applied the same procedure, but with weather data on station-level.
+To analzye the effect of precipitation on walking speed, we opted for two different spatial and temporal scales of the weather data (small cross-scale analysis (@laube2011)). First, conducted an analysis with weather data on a city-level. Second, we applied the same procedure, but with weather data on a station-level.
 
 ```{r}
 # clean weather_hourly_df
@@ -1457,6 +1457,7 @@ ggplot(hourly_hulls_weather_field, aes(x = RainDur, y = log(area_m2))) +
     legend.text = element_text(size = 8)
     )
 ```
+
 :::
 
 Again, we see the same visual pattern now with the hourly data.
@@ -1674,29 +1675,7 @@ wilcox.test(speed_kmh ~ rain_flag, data = analysis_data)
 lm(speed_kmh ~ Wert, data = analysis_data)
 ```
 
-```{r}
-# visualize all values (including 0)
-ggplot(analysis_data, aes(Wert, speed_kmh)) +
-  
-  geom_point(alpha = 0.3) +
-  
-  geom_smooth(method = "lm") +
-
-  labs(
-    x = "Rain Duration (city average) [min]",
-    y = "Speed [km/h]",
-    title = "City-level Relationship Between Rain and Walking Speed",
-    subtitle = "Linear regression with 95% confidence interval") +
-  
-  theme_minimal() +
-  
-  theme(
-    plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
-    legend.title = element_text(size = 10),
-    legend.text = element_text(size = 8)
-    )
-```
-
+If we only include actual raining values (>0) for the fitting line, the relationship becomes even more visible.
 ```{r}
 # visualize, but only values where there actually is rain (>0)
 ggplot(analysis_data, aes(Wert, speed_kmh)) +
@@ -1751,9 +1730,10 @@ The comparison between the analysis with city-level and with station-level weath
 
 ## Limitations
 
-This analysis has various limitations. First, the classification of segments with static thresholds into movement vs. non-movement is frequent, but recent research has shows, that the selection of static thresholds is often not adequate and makes no distinction between different use cases. The proposed alternative would be a more flexible and user-adapted approach, which however is out of scope for this project (Bonavita et al., 2022).
+This analysis has various limitations. 
+First, the classification of segments with static thresholds into movement vs. non-movement is frequent, but recent research has shown that the selection of static thresholds is often not adequate and makes no distinction between different use cases. The proposed alternative would be a more flexible and user-adapted approach, which however is out of scope for this project (@bonavita2022).
 
-Second, the low amount of trajectory and weather data means that our findings need to be interpreted with caution. This is especially the case for the analysis with precipitation data, as very few entries were available due to unusual dry conditions. Thus, the conducted tests and regression analysis have very limited power
+Second, the low amount of trajectory and weather data means that our findings need to be interpreted with caution. This is especially the case for the analysis with precipitation data, as very few entries were available due to unusual dry conditions. Thus, the conducted tests and regression analysis have very limited power.
 
 Third, important behavioural and environmental factors were not included. Trip purpose is likely a major determinant of mobility patterns, as walking behaviour is strongly driven by daily routines and situational needs (@montigny2012). Additional influences such as sunlight, storms, weather complexity and urban context may also affect walking speed and behaviour (@giannoulaki2024; @rotton1990; @obuchi2021). Moreover, precipitation effects may vary over time, including delayed or anticipatory responses (@zhao2019).
 
@@ -1766,6 +1746,8 @@ LLMs were used to improve the structure of sentences and grammar as well as crea
 # Appendix
 
 ### Wordcount
+
+Disclaimer: To improve structure and clarity, We included headings and subheadings for the whole report, which are around 1800 characters. That is why the total number of characters is slightly over the maximum number of characters.
 
 <!-- after installing the wordcountadding, remove the line "#| eval: false" -->
 
