@@ -31,21 +31,19 @@ The results suggest that increasing temperature can lead to higher walking speed
 
 # Introduction
 
-Since the dawn of human evolution, humans have walked across the surface of the earth. To this day, it is the most essential mode of transport since almost all trips include some part of moving on foot (@giannoulaki2024). Therefore, it is no wonder that pedestrian movement has been studied in depth and the results are used to create appealing and efficient walking infrastructure that also shield these vulnerable people against other, potentially dangerous transport modes. 
+Since the dawn of human evolution, humans have walked across the surface of the earth. To this day, walking remains the most essential mode of transport, since almost all trips include some part of moving on foot (@giannoulaki2024). Pedestrian movement has therefore been studied in depth to create appealing and efficient walking infrastructure.
 
-One of the most relevant variables when talking about pedestrian movement is movement speed. According to @giannoulaki2024, pedestrian speed depends on five factors: Pedestrian flow characteristics (e.g. density), pedestrian attributes (e.g. age, gender), layout configuration (e.g. inclination), ambient conditions (e.g. weather, noise) and pedestrian behavioural patterns (e.g. using a phone). We will focus on the ambient conditions, more precisely on weather (temperature, precipitation) and its effect on pedestrian movement as well as its effect on mobility pattern in general. As conceptual movement space, we use an unconstrained movement model @laube2009, since we focus on walking mobility that occurs not always on fixed routes.
+One of the most relevant variables in pedestrian movement is walking speed. According to @giannoulaki2024, it depends on five factors: flow characteristics, pedestrian attributes, layout configuration, ambient conditions and behavioural patterns. This project focuses on ambient conditions, namely weather (temperature, precipitation), and its effect on pedestrian mobility patterns. As conceptual movement space, we use an unconstrained movement model (@laube2009), since walking mobility does not always occur on fixed routes.
 
-Following the established framework for context-aware Movement Analysis (CAMA) @nathan2008, we investigate precipitation and temperature effects (external factors) on spatial extent (navigation capacity) and on speed levels (motion capacity). It is important to note that weather as external factor can have a direct effect on motion capacity but also indirect trough navigation capacity.
+Following the established framework for context-aware Movement Analysis (CAMA) @nathan2008, we investigate precipitation and temperature effects (external factors) on spatial extent (navigation capacity) and on speed levels (motion capacity), noting that weather can affect motion capacity both directly and indirectly.
 
 ![Adapted framework from @nathan2008](figures/fig1.png){width=300}
 
-Weather conditions can influence both the decision to walk and the way pedestrians move through space. Among the different meteorological variables, precipitation and temperature are particularly relevant due to their direct effects on the walking environment and human comfort. In the northern hemisphere, low temperatures and precipitation are generally associated with poorer conditions for walking, as rain, snow, and ice can reduce pavement quality and require pedestrians to adopt more cautious, hence slower, movement patterns (@montigny2012; @giannoulaki2024). However, the relationship between weather and walking behaviour is complex. While poor conditions may reduce walking speeds due to safety concerns, pedestrians may also increase their speed under unfavourable weather to minimize exposure and reach their destination more quickly (@giannoulaki2024). Warmer temperatures up to a certain threshold can encourage walking, while higher temperatures (23°C or more) may lead pedestrians to seek shade and alter their routes (@montigny2012). However, walking may also serve as a heat-production mechanism under colder conditions, resulting in faster walking speeds during winter or in cooler climates (@obuchi2021).
+In the northern hemisphere, low temperatures and precipitation are generally associated with poorer walking conditions, as rain, snow and ice reduce pavement quality and require more cautious, slower movement (@montigny2012). However, the relationship is complex since pedestrians may also increase their speed under unfavourable weather to minimize exposure and reach their destination faster (@giannoulaki2024). Warmer temperatures up to a certain threshold encourage walking, while higher temperatures (23°C or more) may lead pedestrians to seek shade and alter their routes (@montigny2012). The speed increase in heat was also found by @rotton1990, which is explained through the Yerkes–Dodson law, where moderate arousal (=heat) improves performance while excessive stress reduces it (a U-shaped curve) (@yerkes1908). Furthermore, walking may also serve as a heat-production mechanism in cold temperatures, resulting in faster speeds (@obuchi2021).
 
-@rotton1990 found that head causes individuals to walk faster. This influence of temperature on walking speed can also be explained through the Yerkes–Dodson law, where moderate arousal can improve performance, while excessive stress reduces it (U-shaped curve) (@yerkes1908). Warmer temperatures may therefore increase walking speed up to a point, but extreme temperatures can negatively affect speed. 
+Precipitation is one of the strongest determinants of pedestrian activity. Rainfall significantly reduces pedestrian traffic, and this effect extends beyond the immediate weather event, as travellers may anticipate rainfall and adjust their mobility decisions in advance (@zhao2019).
 
-Precipitation is one of the strongest determinants of pedestrian activity. Studies have shown that rainfall significantly reduces pedestrian traffic (@zhao2019). Furthermore, the effect of precipitation extends beyond the immediate weather event, as travellers may anticipate rainfall and adjust their mobility decisions in advance (@zhao2019). 
-
-This project focuses on the impact of temperature and precipitation on pedestrian mobility patterns and walking behaviour. More precisely, we decided on the following Research Questions (RQ):  
+This project focuses on the impact of temperature and precipitation on pedestrian mobility patterns and walking behaviour, leading to the following Research Questions (RQ):  
 I) How does temperature affect walking speed?  
 II) How does precipitation affect walking speed?  
 III) How do temperature and precipitation affect the spatial extent of activity spaces?  
@@ -934,9 +932,9 @@ hist(
 
 ### Travel Mode Detection - Walking
 
-In transportation planning, free flow pedestrian walking speed is assumed to be between 0.8 m/s and 1.5 m/s or 3 to 7 km/h. In our case, slower walking speeds could be possible since the city of Zurich can be rather densely packed and free flow speed might not be achieved. This is why we extended the lower threshold. 
-
 ```{r}
+# In transportation planning, free flow pedestrian walking speed is assumed to be between 0.8 m/s and 1.5 m/s or 3 to 7 km/h. In our case, slower walking speeds could be possible since the city of Zurich can be rather densely packed and free flow speed might not be achieved. This is why we extended the lower threshold. 
+
 # create only walking segments (speed between 1 and 7 km/h)
 walking_segments <- segments |> 
   filter(segments$speed_kmh < 7 & segments$speed_kmh > 1 )
@@ -1030,7 +1028,7 @@ ggplot() +
 
 ### Assign Segments to Voronoi Polygons
 
-First, we assign each segment to voronoi polygon using a spatial join. Second, we also apply a temporal join to link the weather data of the same date and time as the trajectory. For that, we define a "representative time" for each segment, meaning the midtime (end_time-start_time)/2. The timedifference between each segment and the weather data is computed and the weather entry with the lowest time difference is then selected for matching. Added to this, a treshold of 120min is set, where time differences above it, are automatically excluded for a temporal join.
+First, we assign each segment to voronoi polygon using a spatial join. Second, we also apply a temporal join to link the weather data of the same date and time as the trajectory. For that, we define a "representative time" for each segment, meaning the midtime (end_time-start_time)/2. The timedifference between each segment and the weather data is computed and the weather entry with the lowest time difference is then selected for matching. Added to this, a threshold of 120min is set, where time differences above it, are automatically excluded for a temporal join.
 Regarding the validation of the temporal join, the median time difference of 3.84 min indicates very high temporal linkage.
 
 ```{r}
@@ -1779,4 +1777,3 @@ LLMs were used to improve the structure of sentences and grammar as well as crea
 wordcountaddin::word_count("index.qmd") # counts words
 wordcountaddin::text_stats("index.qmd") # counts characters
 ```
-
